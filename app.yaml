@@ -1,8 +1,8 @@
 application: annalect-api-jobs
-version: v1
+version: v1-multiapi
 runtime: php55
 api_version: 1
-service: adwords-api
+service: api-jobs
 instance_class: B4
 basic_scaling:
   max_instances: 10
@@ -10,14 +10,14 @@ basic_scaling:
 
 handlers:
 
-- url: /_ah/start
-  script: start.php
-  secure: always
-
 - url: /
   script: index.php
   secure: always
 
-- url: /tasker.php
+- url: /run
   script: tasker.php
+  secure: always
+
+- url: /edit
+  script: edit.php
   secure: always

@@ -13,18 +13,39 @@ $skip_headers = 'false';
 $project['access_token'] = update_access_token($client_id, $client_secret, $project['refresh_token']);
 
 foreach ($project['accounts'] as $key => $account) {
-    $account_data = set_adwords_request(
-        $account,
-        $project['report'],
-        $project['metrics'],
-        $project['date'],
-        $project['access_token'],
-        $developer_token,
-        $skip_headers
-    );
-    $skip_headers = 'true';
-    $csv_string_account .= $account_data ? $account_data : '';
+    switch ($project['api']) {
+        case "adwords":
+            $account_data = set_adwords_request(
+                $account,
+                $project['report'],
+                $project['metrics'],
+                $project['date'],
+                $project['access_token'],
+                $developer_token,
+                $skip_headers
+            );
+            $skip_headers = 'true';
+            $csv_string_account .= $account_data ? $account_data : '';
+            break;
+        case "dcm":
+            $account_data = set_adwords_request(
+                $account,
+                $project['report'],
+                $project['metrics'],
+                $project['date'],
+                $project['access_token'],
+                $developer_token,
+                $skip_headers
+            );
+            $skip_headers = 'true';
+            $csv_string_account .= $account_data ? $account_data : '';
+            break;
+        default:
+            return array('error', "api not provided to project :".$project['project']);
+    }
+
 }
+
 create_csv_file($csv_string_account, $project['project'], $storage_data);
 
 
@@ -44,45 +65,6 @@ function update_access_token($client_id, $client_secret, $refresh_token)
     if ($access_token) {
 
         return json_decode($access_token)->access_token;
-
-    } else {
-
-        return false;
-    }
-}
-
-
-/*
- * Google Adwords API call (HTTP API request and AND conditions)
- */
-
-function set_adwords_request($account, $report, $metrics, $date, $access_token, $developer_token, $skip_headers)
-{
-
-    //Call headers
-    $headers = array('contentType: application/x-www-form-urlencoded',
-        'developerToken: ' . $developer_token,
-        'Authorization : Bearer ' . $access_token,
-        'clientCustomerId:' . $account,
-        'skipReportHeader: true',
-        'skipColumnHeader: ' . $skip_headers,
-        'skipReportSummary: true',
-        'includeZeroImpressions: false');
-
-    //URL
-    $endpoint = 'https://adwords.google.com/api/adwords/reportdownload/v201705';
-
-
-    //Payload data
-    $payload = '__fmt=CSV&__rdquery=' . ' SELECT ' . $metrics . ' FROM ' . $report . ' ' . 'DURING ' . $date;
-
-    //CURL request
-    $curl_response = set_curl($headers, $endpoint, $payload, 'POST', null);
-
-    //Return API data
-    if ($curl_response) {
-
-        return $curl_response;
 
     } else {
 
@@ -128,34 +110,6 @@ function set_curl($headers, $endpoint, $payload, $type, $extras)
 
 
 /*
- * Google Adwords API call (Response handler)
- */
-
-function handle_adwords_api_response($api_response)
-{
-    if (is_array($api_response)) {
-
-        if ($api_response[0] === 'error') {
-
-            $error_reason = '';
-            $error_reason_xml = $api_response[1];
-            $error_reason_array = explode('</type>', $error_reason_xml);
-
-            foreach (array_slice($error_reason_array, 0, sizeof(explode('</type>', $error_reason_xml)) - 1) as $item) {
-                $error_reason = $error_reason === '' ? explode('Error.', $item)[1] : $error_reason . ', ' . explode('Error.', $item)[1];
-            }
-
-            return false;
-        }
-
-    } else {
-
-        return $api_response;
-    }
-}
-
-
-/*
  * SET CURL - CREATE AND UPDATE CSV FILE
  */
 
@@ -188,15 +142,7 @@ function create_csv_file($csv_string, $name, $storage_data)
 
     } else {
 
-        if (is_array($report_metadata_latest)) {
-
-            return array('error', $report_metadata_latest[1]);
-
-        } else {
-
-            return array('error', $report_metadata_versions[1]);
-
-        }
+        return array('error', 'access token not found');
     }
 }
 
@@ -253,7 +199,7 @@ function upload_report_to_google_cloud($resumable_session_url, $csv_string)
 
 
 /*
- * Get service access token - Function that returns an acces token either from db as is not expired yet or straight from the api request
+ * Get service access token - Function that returns an access token either from db as is not expired yet or straight from the api request
  */
 
 function get_access_token($cloud_storage_data_decoded)
@@ -286,7 +232,7 @@ function get_access_token($cloud_storage_data_decoded)
 
 
 /*
- * Get service account access token - Function that returns an acces token to make calls to google cloud storage
+ * Get service account access token - Function that returns an access token to make calls to google cloud storage
  */
 function get_service_account_access_token($client, $scope, $key)
 {
@@ -332,4 +278,76 @@ function get_http_response_code($endpoint)
 function base64_url_encode($input)
 {
     return str_replace('=', '', strtr(base64_encode($input), '+/', '-_'));
+}
+
+
+
+////////////////////////
+
+// ADWORDS
+
+
+/*
+ * Google Adwords API call (Response handler)
+ */
+
+function handle_adwords_api_response($api_response)
+{
+    if (is_array($api_response)) {
+
+        if ($api_response[0] === 'error') {
+
+            $error_reason = '';
+            $error_reason_xml = $api_response[1];
+            $error_reason_array = explode('</type>', $error_reason_xml);
+
+            foreach (array_slice($error_reason_array, 0, sizeof(explode('</type>', $error_reason_xml)) - 1) as $item) {
+                $error_reason = $error_reason === '' ? explode('Error.', $item)[1] : $error_reason . ', ' . explode('Error.', $item)[1];
+            }
+
+            return false;
+        }
+
+    } else {
+
+        return $api_response;
+    }
+}
+
+/*
+ * Google Adwords API call (HTTP API request and AND conditions)
+ */
+
+function set_adwords_request($account, $report, $metrics, $date, $access_token, $developer_token, $skip_headers)
+{
+
+    //Call headers
+    $headers = array('contentType: application/x-www-form-urlencoded',
+        'developerToken: ' . $developer_token,
+        'Authorization : Bearer ' . $access_token,
+        'clientCustomerId:' . $account,
+        'skipReportHeader: true',
+        'skipColumnHeader: ' . $skip_headers,
+        'skipReportSummary: true',
+        'includeZeroImpressions: false');
+
+    //URL
+    $endpoint = 'https://adwords.google.com/api/adwords/reportdownload/v201705';
+
+
+    //Payload data
+    $payload = '__fmt=CSV&__rdquery=' . ' SELECT ' . $metrics . ' FROM ' . $report . ' ' . 'DURING ' . $date;
+
+    //CURL request
+    $curl_response = set_curl($headers, $endpoint, $payload, 'POST', null);
+
+    //Return API data
+    if ($curl_response) {
+
+        return $curl_response;
+
+    } else {
+
+        return false;
+    }
 }

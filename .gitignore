@@ -15,3 +15,26 @@ application/logs/*
 !application/logs/index.html
 !application/logs/.htaccess
 /vendor/
+
+
+# IDE Files
+#-------------------------
+/nbproject/
+.idea/*
+
+## Sublime Text cache files
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+.idea/
+/php.ini
+/application/config/database.php
+/application/config/development/database.php
+/application/config/development/config.php
+/app.yaml
+/queue.yaml
+/cron.yaml
+/batch.yaml
