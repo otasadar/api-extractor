@@ -1,0 +1,23 @@
+application: annalect-api-jobs
+version: v1
+runtime: php55
+api_version: 1
+service: adwords-api
+instance_class: B4
+basic_scaling:
+  max_instances: 10
+  idle_timeout: 40m
+
+handlers:
+
+- url: /_ah/start
+  script: start.php
+  secure: always
+
+- url: /
+  script: index.php
+  secure: always
+
+- url: /tasker.php
+  script: tasker.php
+  secure: always
