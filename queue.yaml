@@ -1,8 +1,0 @@
-queue:
-- name: annalect-api-jobs-queue
-  rate: 1/s
-  target: v1-multiapi.api-jobs
-
-  retry_parameters:
-      task_retry_limit: 5
-      task_age_limit: 1d
