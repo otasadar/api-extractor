@@ -12,6 +12,7 @@ $extraction['file_name_tpl'] = $extraction['file_name'];
 $csv_output = '';
 $skip_headers = 'false';
 
+syslog(LOG_DEBUG, 'json_request:'.$extraction['json_request']);
 
 switch ($extraction['api_type']) {
     case "google":
@@ -50,11 +51,13 @@ switch ($extraction['api']) {
         // todo floodlight custom vars
         // todo move this api switch to task for mutliples task, require open csv files
         // todo create super object from config
+        // todo manage 404 api response
 
         $extraction['json_request'] = json_decode($extraction['json_request']);
         $extraction['json_request']->schedule->expirationDate = $dcm_today;
         $extraction['json_request']->schedule->startDate = $dcm_today;
         $extraction['json_request'] = json_encode($extraction['json_request']);
+        syslog(LOG_DEBUG, 'json_request 2:'.$extraction['json_request']);
 
 
         $profileIdsValidator = dcm_get_profilesIds($extraction);
@@ -77,9 +80,9 @@ switch ($extraction['api']) {
 
                     break;
                 case "FLOODLIGHT":
-                    $floodlightConfigIdsValidator = dcm_check_floodlightConfigIds($profileId, $extraction) ;
+
                     foreach ($extraction['floodlightConfigIds'][$profileId] as $key => $floodlightConfigId) {
-                        if (!in_array($floodlightConfigId, $floodlightConfigIdsValidator)){
+                        if (!dcm_check_floodlightConfigId($profileId, $floodlightConfigId, $extraction )){
                             syslog(LOG_DEBUG, 'floodlightConfigId not found : '.$floodlightConfigId);
                             continue;
                         }
@@ -492,26 +495,24 @@ function dcm_get_profilesIds($extraction)
 }
 
 // DCM Check Floodlight IDs list is valid
-function dcm_check_floodlightConfigIds($profileId, $extraction )
+function dcm_check_floodlightConfigId($profileId, $floodlightConfigurationId, $extraction )
 {
 
-    $floodlightConfigIds = $extraction['floodlightConfigIds'][$profileId];
-    $floodlightConfigIds = "?ids=".implode($floodlightConfigIds, '&ids=');
     $headers = array("Authorization: Bearer ".$extraction['access_token'], 'Accept: application/json');
-    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/floodlightConfigurations$floodlightConfigIds";
+    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/floodlightActivityGroups?floodlightConfigurationId=$floodlightConfigurationId";
 
     $curl_response = set_curl($headers, $endpoint, null, 'GET', null);
     $curl_response = json_decode( $curl_response , true);
 
-    $floodlightConfigurations = [];
-    foreach ($curl_response['floodlightConfigurations'] as $key => $result) {
-        $floodlightConfigurations [] = $result['id'];
-    }
-    if (!empty($floodlightConfigurations)) {
-        syslog(LOG_DEBUG, "dcm_check_floodlightConfigIds ".implode(',', $floodlightConfigurations) );
-    }
+    $result = count ($curl_response['floodlightActivityGroups']);
+    if (isset($result) && $result > 0) {
+        syslog(LOG_DEBUG, "floodlightConfigId $floodlightConfigurationId valid!");
+        return true;
 
-    return $floodlightConfigurations;
+    } else {
+        syslog(LOG_DEBUG, "floodlightConfigId $floodlightConfigurationId NOT VALID!");
+        return false;
+    }
 
 }
 
