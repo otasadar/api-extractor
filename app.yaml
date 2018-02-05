@@ -5,7 +5,10 @@ service: api-extractor
 runtime: php55
 api_version: 1
 
-instance_class: B1
+# Using B4_1G because need more memory for replace csv files
+# Todo change to B2 reducing resource
+
+instance_class: B4_1G
 basic_scaling:
   max_instances: 10
   idle_timeout: 40m
