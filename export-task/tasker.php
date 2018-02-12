@@ -22,7 +22,6 @@ use google\appengine\api\log\LogService;
 
 
 $extraction = $_POST['extraction'];
-$extraction['extraction_id'] = $_POST['extraction_id'];
 $extraction['csv_output'] = '';
 $extraction['file_name_tpl'] = $extraction['file_name'];
 $skip_headers = 'false'; //todo move this variable
@@ -94,6 +93,7 @@ switch ($extraction['api']) {
 
             case "STANDARD":
 
+                /*
                 foreach ($extraction['profileIds'] as $key => $profileId) {
 
                     if (!in_array($profileId, $extraction['profileIds_validated'])) {
@@ -110,6 +110,13 @@ switch ($extraction['api']) {
                     $extraction = dcm_preparing_csv_file($raw_data, $extraction);
 
                 }
+                */
+
+                $extraction = check_access_token($extraction);
+                $extraction['csv_output'] = dcm_start($extraction, $extraction['current_profileId']);
+                //$extraction = dcm_get_report_header($raw_data, $extraction, 'Campaign');
+                //$raw_data = dcm_headers_cleaner($raw_data, $extraction, 'Campaign', true);
+                //$extraction = dcm_preparing_csv_file($raw_data, $extraction);
 
 
                 break;
@@ -577,7 +584,7 @@ function set_adwords_request($account, $report, $metrics, $startDate, $endDate, 
 
 
 ////////////////////////
-// DCM API FUNCTIONS
+// DCM API FUNCTIONS 
 
 function dcm_start($extraction, $profileId)
 {
@@ -761,6 +768,8 @@ function dcm_get_report_url($api_response, $extraction)
 // DCM request 4 - Get CSV content by URL
 function dcm_get_report_url_content($api_response, $extraction)
 {
+    status_log("original CSV : {$extraction['file_name']} ".$api_response->urls->browserUrl);
+
     $url = $api_response->urls->apiUrl;
     $status = $api_response->status;
     $access_token = $extraction['access_token'];
