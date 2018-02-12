@@ -1,5 +1,5 @@
 #application: annalect-api-jobs
-service: api-extractor
+service: api-extractor-staging
 #version: v1
 
 runtime: php55
@@ -10,8 +10,8 @@ api_version: 1
 
 instance_class: B4_1G
 basic_scaling:
-  max_instances: 10
-  idle_timeout: 40m
+  max_instances: 20
+  idle_timeout: 10m
 
 handlers:
 - url: /_ah/start
@@ -22,8 +22,12 @@ handlers:
   script: index.php
   secure: always
 
-- url: /run
-  script: run.php
+- url: /run-y
+  script: run-y.php
+  secure: always
+
+- url: /run-h
+  script: run-h.php
   secure: always
 
 - url: /run-tasks

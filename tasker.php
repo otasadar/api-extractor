@@ -2,37 +2,58 @@
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Dubai');
 
+echo "v2";
+// todo crate a dcm function to storage
+// remove set_curl_adwords() from google storage
+// todo create super object from config
+// todo manage 404 api response
+// todo add csv headers in object instead of capture for first line, for avoid null first report
+// todo manage FAIL response
+// todo add message when timeout
+// todo remove profiles id duplicates in config file
+// todo modify floodId validation with list
+
+// todo move this api switch to task for mutliples task, require open csv files
+
+
 use google\appengine\api\taskqueue\PushTask;
 use google\appengine\api\taskqueue\PushQueue;
 use google\appengine\api\log\LogService;
 
 
-require_once __DIR__ . '/config.php';
 $extraction = $_POST['extraction'];
 $extraction['extraction_id'] = $_POST['extraction_id'];
 $extraction['csv_output'] = '';
 $extraction['file_name_tpl'] = $extraction['file_name'];
-$skip_headers = 'false';
+$skip_headers = 'false'; //todo move this variable
 
-//syslog(LOG_DEBUG, 'json_request:'.$extraction['json_request']);
+status_log("Start Task {$extraction['file_name']}--------------------------------------");
+syslog(LOG_DEBUG, 'Extraction:' . json_encode($extraction));
+
 
 switch ($extraction['api_type']) {
     case "google":
-        $extraction['access_token'] = update_access_token($client_id, $client_secret, $extraction['refresh_token']);
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $extraction['access_token'] = get_access_token($client_id, $client_secret, $extraction['refresh_token']);
+        $now = new DateTime();
+        $extraction['access_token_datetime'] = $now->format('Y-m-d H:i:s');
         break;
 
     case "facebook":
         break;
 
     default:
-        syslog(LOG_DEBUG, 'Not API Type provided '.$_SERVER['CURRENT_VERSION_ID ']);
-        return array('error', "api not provided to extraction  :".$extraction['extraction_name']);
+        syslog(LOG_DEBUG, 'Not API Type provided ' . $_SERVER['CURRENT_VERSION_ID ']);
+        return array('error', "api not provided to extraction  :" . $extraction['extraction_name']);
         break;
 }
 
 switch ($extraction['api']) {
     case "adwords":
         foreach ($extraction['accounts'] as $key => $account) {
+            status_log("AdWords Start accountId: $account file_name: {$extraction['file_name']}");
+            $extraction['current_accountId'] = $account;
             $account_data = set_adwords_request(
                 $account,
                 $extraction['report'],
@@ -41,160 +62,201 @@ switch ($extraction['api']) {
                 $extraction['endDate'],
                 $extraction['access_token'],
                 $developer_token,
-                $skip_headers
+                $skip_headers,
+                $extraction
             );
             $skip_headers = 'true';
-            $extraction['csv_output'] .= $account_data ? $account_data : '';
+            //$extraction['csv_output'] .= $account_data ? $account_data : '';
+
+            // storage
+            if (mb_strlen($account_data) > 1) {
+                $extraction['csv_output'] .= $account_data;
+                status_log("AdWords OK accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
+
+            } else {
+                syslog(LOG_DEBUG, "AdWords EMPTY accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
+                syslog(LOG_DEBUG, $account_data);
+                status_log("AdWords EMPTY accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
+            }
         }
-        create_csv_file($extraction['csv_output'] , $extraction, $storage_data);
+        create_csv_file($extraction['csv_output'], $extraction, $storage_data);
         break;
 
     case "dcm":
-        // todo check when profileID not exists, check null returns
-        // todo create a status of each request and send by email
-        // todo floodlight custom vars
-        // todo move this api switch to task for mutliples task, require open csv files
-        // todo create super object from config
-        // todo manage 404 api response
-        // todo manage FAIL response
-        // todo add message when timeout
 
         $extraction['json_request'] = json_decode($extraction['json_request']);
-        $extraction['json_request']->schedule->expirationDate = $dcm_today;
-        $extraction['json_request']->schedule->startDate = $dcm_today;
+        $extraction['json_request']->schedule->expirationDate = $extraction['global']['dcm']['today'];
+        $extraction['json_request']->schedule->startDate = $extraction['global']['dcm']['today'];
         $extraction['json_request'] = json_encode($extraction['json_request']);
-        //syslog(LOG_DEBUG, 'json_request 2:'.$extraction['json_request']);
+        $extraction['profileIds_validated'] = dcm_get_profilesIds($extraction);
+
+        switch ($extraction['report_type']) {
+
+            case "STANDARD":
+
+                foreach ($extraction['profileIds'] as $key => $profileId) {
+
+                    if (!in_array($profileId, $extraction['profileIds_validated'])) {
+                        syslog(LOG_DEBUG, 'profileId not found : ' . $profileId);
+                        status_log("DCM {$extraction['report_type']} ERROR profileId not found: $profileId");
+                        continue;
+                    }
+
+                    $extraction['current_profileId'] = $profileId;
+                    $extraction = check_access_token($extraction);
+                    $raw_data = dcm_start($extraction, $profileId);
+                    $extraction = dcm_get_report_header($raw_data, $extraction, 'Campaign');
+                    $raw_data = dcm_headers_cleaner($raw_data, $extraction, 'Campaign', true);
+                    $extraction = dcm_preparing_csv_file($raw_data, $extraction);
+
+                }
 
 
-        $profileIdsValidator = dcm_get_profilesIds($extraction);
+                break;
 
-        foreach ($extraction['profileIds'] as $key => $profileId) {
-            if (!in_array($profileId, $profileIdsValidator)){
-                syslog(LOG_DEBUG, 'profileId not found : '.$profileId);
-                status_log("DCM {$extraction['report_type']} ERROR profileId not found: $profileId");
-                continue;
-            }
-            //syslog(LOG_DEBUG, 'init task : '.json_encode($extraction));
-            $extraction['current_profileId'] = $profileId;
+            case "FLOODLIGHT":
 
-            $i = 0;
-            switch ($extraction['report_type']) {
-                case "STANDARD":
 
-                    $raw_data = dcm_start ($extraction, $profileId);
-                    $raw_data = dcm_headers_cleaner ($raw_data, $extraction, 9, true);
+                $i = 0;
 
-                    $extraction['csv_output'] .=$raw_data;
-                    $extraction['file_name'] = str_replace('{profileId}', $profileId, $extraction['file_name_tpl']);
+                foreach ($extraction['floodlightConfigIds'] as $profileId => $floodlightConfigIds) {
 
-                    status_log("DCM {$extraction['report_type']} OK profileId: $profileId");
-                    break;
+                    // profileId validation
+                    if (!in_array($profileId, $extraction['profileIds_validated'])) {
+                        syslog(LOG_DEBUG, 'profileId not found : ' . $profileId);
+                        status_log("DCM {$extraction['report_type']} ERROR profileId not found: $profileId");
+                        continue;
+                    }
 
-                case "FLOODLIGHT":
+                    foreach ($floodlightConfigIds as $floodlightConfigId) {
+                        $extraction = check_access_token($extraction);
+                        $floodlightConfigIdsValidator = dcm_check_floodlightConfigIds($profileId, $extraction);
 
-                    foreach ($extraction['floodlightConfigIds'][$profileId] as $key => $floodlightConfigId) {
-                        if (!dcm_check_floodlightConfigId($profileId, $floodlightConfigId, $extraction )){
-                            syslog(LOG_DEBUG, 'floodlightConfigId not found : '.$floodlightConfigId);
-                            status_log("DCM {$extraction['report_type']} ERROR floodlightConfigId not found : $floodlightConfigId - profileId: $profileId");
+                        // floodlightConfigIds validation
+                        if (!in_array($floodlightConfigId, $floodlightConfigIdsValidator)) {
+                            syslog(LOG_DEBUG, '$floodlightConfigId not found as a valid one : ' . $floodlightConfigId);
+                            status_log("DCM {$extraction['report_type']} ERROR advertiserId not found : $floodlightConfigId - profileId: $profileId");
                             continue;
                         }
+
+                        $extraction['current_profileId'] = $profileId;
                         $extraction['current_floodlightConfigId'] = $floodlightConfigId;
                         $extraction['json_request'] = json_decode($extraction['json_request']);
                         $extraction['json_request']->floodlightCriteria->floodlightConfigId->value = $floodlightConfigId;
                         $extraction['json_request'] = json_encode($extraction['json_request']);
 
-                        $raw_data = dcm_start ($extraction, $profileId);
-                        if ($i === 0) {
-                            $raw_data = dcm_headers_cleaner ($raw_data, $extraction, 9, true);
-                        } else {
-                            $raw_data = dcm_headers_cleaner ($raw_data, $extraction, 10, true);
-                        }
-                        $extraction['csv_output'] .=$raw_data;
+                        $raw_data = dcm_start($extraction, $profileId);
+                        $extraction = dcm_get_report_header($raw_data, $extraction, 'Campaign');
+                        $raw_data = dcm_headers_cleaner($raw_data, $extraction, 'Campaign', true);
+                        $extraction = dcm_preparing_csv_file($raw_data, $extraction);
+
                         $i++;
-
-                        $extraction['file_name'] = str_replace('{profileId}', $profileId, $extraction['file_name_tpl']);
-                        status_log("DCM {$extraction['report_type']} OK profileId:$profileId floodlightConfigId:$floodlightConfigId");
-
                     }
-                    break;
 
-                case "CROSS_DIMENSION_REACH":
 
-                    $advertiserIdsValidator = dcm_check_advertiserIds($profileId, $extraction) ;
-                    foreach ($extraction['advertiserIds'][$profileId] as $key => $advertiserId) {
-                        if (!in_array($advertiserId, $advertiserIdsValidator)){
-                            syslog(LOG_DEBUG, '$advertiserId not found : '.$advertiserId);
+                }
+                break;
+
+            case "CROSS_DIMENSION_REACH":
+
+                $i = 0;
+                foreach ($extraction['advertiserIds'] as $profileId => $advertiserIds) {
+
+                    // profileId validation
+                    if (!in_array($profileId, $extraction['profileIds_validated'])) {
+                        syslog(LOG_DEBUG, 'profileId not found : ' . $profileId);
+                        status_log("DCM {$extraction['report_type']} ERROR profileId not found: $profileId");
+                        continue;
+                    }
+
+                    foreach ($advertiserIds as $advertiserId) {
+                        $extraction = check_access_token($extraction);
+                        $advertiserIdsValidator = dcm_check_advertiserIds($profileId, $extraction);
+
+                        // prev validations
+                        if (!in_array($advertiserId, $advertiserIdsValidator)) {
+                            syslog(LOG_DEBUG, '$advertiserId not found : ' . $advertiserId);
                             status_log("DCM {$extraction['report_type']} ERROR advertiserId not found : $advertiserId - profileId: $profileId");
                             continue;
                         }
+                        $extraction['current_profileId'] = $profileId;
                         $extraction['current_advertiserId'] = $advertiserId;
                         $extraction['json_request'] = json_decode($extraction['json_request']);
-                        $extraction['json_request']->crossDimensionReachCriteria->dimensionFilters[0]->id  = $advertiserId;
+                        $extraction['json_request']->crossDimensionReachCriteria->dimensionFilters[0]->id = $advertiserId;
                         $extraction['json_request'] = json_encode($extraction['json_request']);
 
-                        $raw_data = dcm_start ($extraction, $profileId);
-                        if ($i === 0) {
-                            $raw_data = dcm_headers_cleaner ($raw_data, $extraction, 9, true);
-                        } else {
-                            $raw_data = dcm_headers_cleaner ($raw_data, $extraction, 10, true);
-                        }
-                        $extraction['csv_output'] .=$raw_data;
-                        $i++;
+                        // start pull data
+                        $raw_data = dcm_start($extraction, $profileId);
+                        $extraction = dcm_get_report_header($raw_data, $extraction, 'Campaign');
+                        $raw_data = dcm_headers_cleaner($raw_data, $extraction, 'Campaign', true);
+                        $extraction = dcm_preparing_csv_file($raw_data, $extraction);
 
-                        $current_advertiserId = $advertiserId;
-                        $extraction['file_name'] = str_replace('{advertiserId}', $advertiserId, $extraction['file_name_tpl']);
-
-                        status_log("DCM {$extraction['report_type']} OK profileId:$profileId advertiserId:$advertiserId");
                     }
-                    break;
 
-                default:
-                    syslog(LOG_DEBUG, 'Report ID: '.$extraction['extraction_id'].' fail, not report type provided');
-                    break;
-            }
+                }
+                break;
+
+            default:
+                syslog(LOG_DEBUG, 'Report ID: ' . $extraction['extraction_id'] . ' fail, not report type provided');
+                break;
         }
 
-
-        create_csv_file($extraction['csv_output'], $extraction, $storage_data);
-        syslog(LOG_DEBUG, "Saving CSV to : {$extraction['extraction_name']}/input/{$extraction['api']}/{$extraction['file_name']}");
+        create_csv_file($extraction);
+        $bucket = $extraction['global']['storage_data']['bucket'];
+        syslog(LOG_DEBUG, "Saving CSV to bucket : $bucket filename: {$extraction['file_name']}");
 
         break;
 
     default:
-        syslog(LOG_DEBUG, 'Not API Name provided '.$_SERVER['CURRENT_VERSION_ID ']);
-        return array('error', "api not provided to extraction  :".$extraction['extraction_name']);
+        syslog(LOG_DEBUG, 'Not API Name provided ' . $_SERVER['CURRENT_VERSION_ID ']);
+        return array('error', "api not provided to extraction  :" . $extraction['extraction_name']);
         break;
 }
 
 
-
-
-
-
-
-
 //  SET_APIS - INVOKE API FUNCTION TO LOAD THE ACCOUNTS LISTS
-function update_access_token($client_id, $client_secret, $refresh_token)
+function get_access_token($client_id, $client_secret, $refresh_token)
 {
 
-    //POST request
     $headers = array('Content-type: application/x-www-form-urlencoded');
     $endpoint = 'https://www.googleapis.com/oauth2/v4/token';
     $payload = 'client_id=' . $client_id . '&client_secret=' . $client_secret . '&refresh_token=' . $refresh_token . '&grant_type=refresh_token';
     $access_token = set_curl($headers, $endpoint, $payload, 'POST', null);
 
     if ($access_token) {
-
         return json_decode($access_token)->access_token;
-
     } else {
         syslog(LOG_DEBUG, 'error access token' . $access_token);
         return false;
     }
 }
 
+function check_access_token($extraction)
+{
+    $now = new DateTime();
+    $start_date = new DateTime($extraction['access_token_datetime']);
+    $since_start = $start_date->diff(new DateTime($now->format('Y-m-d H:i:s')));
+
+    $minutes = $since_start->days * 24 * 60;
+    $minutes += $since_start->h * 60;
+    $minutes += $since_start->i;
+
+    if ($minutes > 50) {
+        status_log('access_token');
+        syslog(LOG_DEBUG, 'access_token');
+
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $extraction['access_token'] = get_access_token($client_id, $client_secret, $extraction['refresh_token']);
+        $extraction['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+    }
+
+    return $extraction;
+
+}
+
 //  SET CURL ADWORDS - HELPER METHOD THAT ISSUES A CURL REQUEST
-function set_curl_adwords($headers, $endpoint, $payload, $type, $extras)
+function set_curl_adwords($headers, $endpoint, $payload, $type, $extras, $extraction = null)
 {
 
     $curl = curl_init();
@@ -214,14 +276,17 @@ function set_curl_adwords($headers, $endpoint, $payload, $type, $extras)
 
     $response = curl_exec($curl);
     $info = curl_getinfo($curl);
+    curl_close($curl);
+
 
     if ($response === false || $info['http_code'] != 200) {
-
-        curl_close($curl);
+        syslog(LOG_DEBUG, "AdWords Curl Error " . $info['http_code']);
+        if ($extraction) {
+            status_log("AdWords Curl_Error" . $info['http_code'] . " accountId: {$extraction['current_accountId']} file_name: {$extraction['file_name']}");
+        }
         return false;
-
     } else {
-        return handle_adwords_api_response($response);
+        return handle_adwords_api_response($response, $extraction);
     }
 }
 
@@ -249,23 +314,23 @@ function set_curl($headers, $endpoint, $payload, $type, $extras = null)
     $info = curl_getinfo($curl);
     curl_close($curl);
 
-    if (strpos($info['http_code'], '30') !== false ) {
-        $response  = set_simple_curl($info['redirect_url']);
-        syslog(LOG_DEBUG, "simple curl :". mb_strlen($response) );
+    if (strpos($info['http_code'], '30') !== false) {
+        $response = set_simple_curl($info['redirect_url']);
+        syslog(LOG_DEBUG, "simple curl :" . mb_strlen($response));
         return $response;
-    }
-    else if ($response === false || $info['http_code'] != 200) {
-        syslog(LOG_DEBUG, "error curl :". json_encode($info));
-        syslog(LOG_DEBUG, "error curl :". $endpoint );
-        syslog(LOG_DEBUG, "error curl :". json_encode($headers) );
-        syslog(LOG_DEBUG, "error curl :". $response );
-        syslog(LOG_DEBUG, "error curl :". $type );
+    } else if ($response === false || $info['http_code'] != 200) {
+        syslog(LOG_DEBUG, "error curl :" . json_encode($info));
+        syslog(LOG_DEBUG, "error curl :" . $endpoint);
+        syslog(LOG_DEBUG, "error curl :" . json_encode($headers));
+        syslog(LOG_DEBUG, "error curl :" . $response);
+        syslog(LOG_DEBUG, "error curl :" . $type);
     } else {
         return $response;
     }
 }
 
-function set_simple_curl($url){
+function set_simple_curl($url)
+{
     $ch = curl_init();
 
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -273,23 +338,27 @@ function set_simple_curl($url){
 
     $result = curl_exec($ch);
     if (curl_errno($ch)) {
-        syslog(LOG_DEBUG, "error set_simple_curl".  curl_error($ch));
+        syslog(LOG_DEBUG, "error set_simple_curl" . curl_error($ch));
     }
-    curl_close ($ch);
+    curl_close($ch);
     return $result;
 }
 
 
 //  SET CURL - CREATE AND UPDATE CSV FILE
-function create_csv_file($csv_string, $extraction, $storage_data)
+function create_csv_file($extraction)
 {
-    $access_token = get_access_token(json_decode($storage_data));
+
+    $csv_string = $extraction['csv_output'];
+    $storage_data = $extraction['global']['storage_data'];
+    $bucket = $extraction['global']['storage_data']['bucket'];
+
+
+    $access_token = get_storage_access_token($extraction);
 
 
     if ($access_token) {
-
-        $resumable_session_url = get_google_storage_session_url($extraction, json_decode($storage_data)->bucket, $access_token);
-
+        $resumable_session_url = get_google_storage_session_url($extraction, $bucket, $access_token);
         if (!is_array($resumable_session_url)) {
 
             $report_metadata_latest = upload_report_to_google_storage($resumable_session_url, $csv_string);
@@ -304,13 +373,10 @@ function create_csv_file($csv_string, $extraction, $storage_data)
             }
 
         } else {
-            syslog(LOG_DEBUG, 'Report metadata has not been updated to the Data Base.' );
-            return array('error', 'Report metadata has not been updated to the Data Base.');
+            syslog(LOG_DEBUG, 'Report metadata has not been updated to the Data Base.');
         }
-
     } else {
-        syslog(LOG_DEBUG, 'access token not found' );
-        return array('error', 'access token not found');
+        syslog(LOG_DEBUG, 'access token not found');
     }
 }
 
@@ -318,14 +384,14 @@ function create_csv_file($csv_string, $extraction, $storage_data)
 function get_google_storage_session_url($extraction, $bucket, $access_token)
 {
     //$file_name = urlencode (  "{$extraction['extraction_name']}/input/{$extraction['api']}/{$extraction['file_name']}");
-    $file_name = urlencode (  "{$extraction['file_name']}");
+    $file_name = urlencode("{$extraction['file_name']}");
 
     $headers = array('X-Upload-Content-Type: text/csv', 'Content-Type: application/json; charset=UTF-8', 'Authorization : Bearer ' . $access_token);
     $endpoint = "https://www.googleapis.com/upload/storage/v1/b/$bucket/o?uploadType=resumable&predefinedAcl=publicRead&name=$file_name";
     $extras = array(array(CURLOPT_HEADER, 1));
     $payload = json_encode(['cacheControl' => 'public, max-age=0, no-transform']);
 
-    syslog(LOG_DEBUG, 'cloud storage '.$endpoint );
+    syslog(LOG_DEBUG, 'cloud storage ' . $endpoint);
 
     //Cloud session URL
     $resumable_session_url = set_curl_adwords($headers, $endpoint, $payload, 'POST', $extras);
@@ -363,32 +429,23 @@ function upload_report_to_google_storage($resumable_session_url, $csv_string)
 }
 
 //  Get service access token - Function that returns an access token either from db as is not expired yet or straight from the api request
-function get_access_token($cloud_storage_data_decoded)
+function get_storage_access_token($extraction)
 {
 
     //If the access token has expired
-    if (get_http_response_code('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' . $cloud_storage_data_decoded->access_token) != "200") {
+    $gcs_access_token = $extraction['global']['storage_data']['access_token'];
+    $gcs_client = $extraction['global']['storage_data']['client'];
+    $gcs_scope = $extraction['global']['storage_data']['scope'];
+    $gcs_key = $extraction['global']['storage_data']['key'];
 
-        $access_token = get_service_account_access_token($cloud_storage_data_decoded->client, $cloud_storage_data_decoded->scope, $cloud_storage_data_decoded->key);
-
-        if ($access_token) {
-
-            return $access_token;
-
-        } else {
-
-            return false;
-
+    if (get_http_response_code('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' . $gcs_access_token) != "200") {
+        $gcs_access_token = get_service_account_access_token($gcs_client, $gcs_scope, $gcs_key);
+        if (!isset($gcs_access_token)) {
+            syslog(LOG_DEBUG, 'error storage access token:' . $gcs_access_token);
         }
-
-        //If the access token has NOT expired
-    } else {
-
-        $access_token = $cloud_storage_data_decoded->access_token;
-
     }
 
-    return $access_token;
+    return $gcs_access_token;
 }
 
 //  Get service account access token - Function that returns an access token to make calls to google cloud storage
@@ -412,7 +469,7 @@ function get_service_account_access_token($client, $scope, $key)
     $payload = http_build_query($data);
 
     //Access token
-    $response = set_curl_adwords($headers, $endpoint, $payload, 'POST', null);
+    $response = set_curl($headers, $endpoint, $payload, 'POST', null);
     $access_token = json_decode($response)->access_token;
 
     return $access_token;
@@ -433,8 +490,9 @@ function base64_url_encode($input)
 }
 
 // return  if values exists
-function return_safe($var , $str) {
-    if(isset($var)) {
+function return_safe($var, $str)
+{
+    if (isset($var)) {
         return $str;
     } else {
         return null;
@@ -442,24 +500,24 @@ function return_safe($var , $str) {
 }
 
 // status log file
-function status_log($data) {
-    $file_path = "gs://api-jobs-files/status-historical-dcm-".date('Y-m-d').".txt";
-    if (file_exists ($file_path) ) {
+function status_log($data)
+{
+    $file_path = "gs://api-jobs-files/status-stg-" . date('Y-m-d') . ".txt";
+    if (file_exists($file_path)) {
         $historic_data = file_get_contents($file_path);
     } else {
         $historic_data = '';
     }
-    $new_line = date('Y-m-d h:i:s')." ".$data."\n";
-    file_put_contents($file_path, $new_line.$historic_data);
+    $new_line = date('Y-m-d h:i:s') . " " . $data . "\n";
+    file_put_contents($file_path, $new_line . $historic_data);
 }
-
 
 
 ////////////////////////
 // ADWORDS API FUNCTIONS
 
 // Google Adwords API call (Response handler)
-function handle_adwords_api_response($api_response)
+function handle_adwords_api_response($api_response, $extraction)
 {
     if (is_array($api_response)) {
 
@@ -473,6 +531,8 @@ function handle_adwords_api_response($api_response)
                 $error_reason = $error_reason === '' ? explode('Error.', $item)[1] : $error_reason . ', ' . explode('Error.', $item)[1];
             }
 
+            syslog(LOG_DEBUG, "AdWords API connection Error " . $api_response);
+            status_log("AdWords API_Error" . $api_response . " accountId: {$extraction['current_accountId']} file_name: {$extraction['file_name']}");
             return false;
         }
 
@@ -483,7 +543,7 @@ function handle_adwords_api_response($api_response)
 }
 
 // Google Adwords API call (HTTP API request and AND conditions)
-function set_adwords_request($account, $report, $metrics, $startDate, $endDate, $access_token, $developer_token, $skip_headers)
+function set_adwords_request($account, $report, $metrics, $startDate, $endDate, $access_token, $developer_token, $skip_headers, $extraction)
 {
 
     //Call headers
@@ -505,7 +565,7 @@ function set_adwords_request($account, $report, $metrics, $startDate, $endDate, 
     $payload = "__fmt=CSV&__rdquery= SELECT $metrics FROM $report DURING $startDate,$endDate";
 
     //CURL request
-    $curl_response = set_curl_adwords($headers, $endpoint, $payload, 'POST', null);
+    $curl_response = set_curl_adwords($headers, $endpoint, $payload, 'POST', null, $extraction);
 
     //Return API data
     if ($curl_response) {
@@ -516,17 +576,15 @@ function set_adwords_request($account, $report, $metrics, $startDate, $endDate, 
 }
 
 
-
-
 ////////////////////////
 // DCM API FUNCTIONS 
 
-function dcm_start ($extraction, $profileId) {
+function dcm_start($extraction, $profileId)
+{
     $extraction['profileId'] = $profileId;
     $api_response = dcm_report_setup($profileId, $extraction);
-
     $api_response = dcm_run_report($api_response, $extraction);
-    $api_response = ask_DCM_data_until_status_available ($api_response, $extraction);
+    $api_response = ask_DCM_data_until_status_available($api_response, $extraction);
     return $api_response;
 
     /*
@@ -568,42 +626,44 @@ function dcm_start ($extraction, $profileId) {
 function dcm_get_profilesIds($extraction)
 {
 
-    $headers = array("Authorization: Bearer ".$extraction['access_token'], 'Accept: application/json');
+    $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
     $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles";
 
     $curl_response = set_curl($headers, $endpoint, null, 'GET', null);
-    $curl_response = json_decode( $curl_response , true);
+    $curl_response = json_decode($curl_response, true);
 
-    $profileIdsValidated= [];
+    $profileIdsValidated = [];
     foreach ($curl_response['items'] as $key => $result) {
         $profileIdsValidated [] = $result['profileId'];
     }
     if (!empty($profileIdsValidated)) {
-        syslog(LOG_DEBUG, "dcm_check_profilesIds ".implode(',', $profileIdsValidated));
+        syslog(LOG_DEBUG, "dcm_check_profilesIds " . implode(',', $profileIdsValidated));
     }
     return $profileIdsValidated;
 
 }
 
 // DCM Check Floodlight IDs list is valid
-function dcm_check_floodlightConfigId($profileId, $floodlightConfigurationId, $extraction )
+function dcm_check_floodlightConfigIds($profileId, $extraction)
 {
 
-    $headers = array("Authorization: Bearer ".$extraction['access_token'], 'Accept: application/json');
-    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/floodlightActivityGroups?floodlightConfigurationId=$floodlightConfigurationId";
+    $floodlightConfigIds = $extraction['floodlightConfigIds'][$profileId];
+    $floodlightConfigIds = "?ids=" . implode($floodlightConfigIds, '&ids=');
+    $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
+    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/floodlightConfigurations$floodlightConfigIds";
 
     $curl_response = set_curl($headers, $endpoint, null, 'GET', null);
-    $curl_response = json_decode( $curl_response , true);
+    $curl_response = json_decode($curl_response, true);
 
-    $result = count ($curl_response['floodlightActivityGroups']);
-    if (isset($result) && $result > 0) {
-        syslog(LOG_DEBUG, "floodlightConfigId $floodlightConfigurationId valid!");
-        return true;
-
-    } else {
-        syslog(LOG_DEBUG, "floodlightConfigId $floodlightConfigurationId NOT VALID!");
-        return false;
+    $floodlightConfigIdsValidated = [];
+    foreach ($curl_response['floodlightConfigurations'] as $key => $result) {
+        $floodlightConfigIdsValidated [] = $result['id'];
     }
+    if (!empty($floodlightConfigIdsValidated)) {
+        syslog(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
+    }
+
+    return $floodlightConfigIdsValidated;
 
 }
 
@@ -612,19 +672,19 @@ function dcm_check_advertiserIds($profileId, $extraction)
 {
 
     $advertiserIds = $extraction['advertiserIds'][$profileId];
-    $advertiserIds = "?ids=".implode($advertiserIds, '&ids=');
-    $headers = array("Authorization: Bearer ".$extraction['access_token'], 'Accept: application/json');
+    $advertiserIds = "?ids=" . implode($advertiserIds, '&ids=');
+    $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
     $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/advertisers$advertiserIds";
 
     $curl_response = set_curl($headers, $endpoint, null, 'GET', null);
-    $curl_response = json_decode( $curl_response , true);
+    $curl_response = json_decode($curl_response, true);
 
     $advertiserIdsValidated = [];
     foreach ($curl_response['advertisers'] as $key => $result) {
         $advertiserIdsValidated [] = $result['id'];
     }
     if (!empty($advertiserIdsValidated)) {
-        syslog(LOG_DEBUG, "dcm_check_advertiserIds ".implode(',', $advertiserIdsValidated) );
+        syslog(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
     }
 
     return $advertiserIdsValidated;
@@ -636,16 +696,16 @@ function dcm_report_setup($profileId, $extraction)
 {
     // First request to get DCM Report ID
     $headers = array('Content-type: application/json');
-    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/reports?access_token=".$extraction['access_token'];
-    syslog(LOG_DEBUG, "endpoint ".$endpoint );
-    syslog(LOG_DEBUG, "json_request ".$extraction['json_request'] );
+    $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/reports?access_token=" . $extraction['access_token'];
+    syslog(LOG_DEBUG, "endpoint " . $endpoint);
+    syslog(LOG_DEBUG, "json_request " . $extraction['json_request']);
 
     $curl_response = set_curl($headers, $endpoint, $extraction['json_request'], 'POST', null);
     $curl_response = json_decode($curl_response);
 
     //syslog(LOG_DEBUG, "profileId ".$profileId );
     //
-    syslog(LOG_DEBUG, "dcm_report_setup ".json_encode($curl_response) );
+    syslog(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
 
     return $curl_response;
 }
@@ -667,7 +727,7 @@ function dcm_run_report($api_response, $extraction)
 
     //syslog(LOG_DEBUG, "reportId ".$reportId );
     //syslog(LOG_DEBUG, "profileId ".$profileId );
-    syslog(LOG_DEBUG, "dcm_run_report ".json_encode($curl_response) );
+    syslog(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
 
     return $curl_response;
 }
@@ -681,8 +741,7 @@ function dcm_get_report_url($api_response, $extraction)
     $reportId = $api_response->reportId;
     $fileId = $api_response->id;
     $access_token = $extraction['access_token'];
-    $headers = array("Authorization: Bearer $access_token " , 'Accept: application/json');
-
+    $headers = array("Authorization: Bearer $access_token ", 'Accept: application/json');
 
 
     // Second request to get DCM report CSV status & final URL
@@ -694,7 +753,7 @@ function dcm_get_report_url($api_response, $extraction)
     //syslog(LOG_DEBUG, "reportId ".$reportId );
     //syslog(LOG_DEBUG, "profileId ".$profileId );
     //syslog(LOG_DEBUG, "fileId ".$fileId );
-    syslog(LOG_DEBUG, "dcm_get_report_url ".json_encode($curl_response) );
+    syslog(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
 
     return $curl_response;
 }
@@ -706,27 +765,26 @@ function dcm_get_report_url_content($api_response, $extraction)
     $status = $api_response->status;
     $access_token = $extraction['access_token'];
 
-    syslog(LOG_DEBUG, "url ".$url );
-    syslog(LOG_DEBUG, "status ".$status );
+    syslog(LOG_DEBUG, "url " . $url);
+    syslog(LOG_DEBUG, "status " . $status);
 
     $headers = array("Authorization: Bearer $access_token");
     $endpoint = "$url";
     $curl_response = set_curl($headers, $endpoint, null, 'GET');
-    syslog(LOG_DEBUG, "dcm_get_report_url_content: ".strlen($curl_response) );
+    syslog(LOG_DEBUG, "dcm_get_report_url_content: " . strlen($curl_response));
 
     return $curl_response; // check if is a CSV data or JSON
 }
 
 
-
 // DCM recursive functions for get report data
-function ask_DCM_data_until_status_available ($api_response, $extraction) {
-
+function ask_DCM_data_until_status_available($api_response, $extraction)
+{
+    $extraction = check_access_token($extraction);
     $api_response = dcm_get_report_url($api_response, $extraction);
     if (!isset($extraction['queueDelay'])) {
         $extraction['queueDelay'] = 5;
-    }
-    else {
+    } else {
         $extraction['queueDelay'] = $extraction['queueDelay'] * 2;
     }
 
@@ -735,98 +793,146 @@ function ask_DCM_data_until_status_available ($api_response, $extraction) {
         $api_response2 = dcm_get_report_url_content($api_response, $extraction);
         return $api_response2;
 
-    }
-    else if ($api_response->status === "PROCESSING") {
-        if  ($extraction['queueDelay'] < $extraction['max_execution_sec']) {
+    } else if ($api_response->status === "PROCESSING") {
+        if ($extraction['queueDelay'] < $extraction['max_execution_sec']) {
 
-            syslog(LOG_DEBUG, "queueDelay".$extraction['queueDelay'] );
+            syslog(LOG_DEBUG, "queueDelay" . $extraction['queueDelay']);
             sleep($extraction['queueDelay']);
             return ask_DCM_data_until_status_available($api_response, $extraction);
 
         } else {
-            syslog(LOG_DEBUG, "TIMEOUT ".$extraction['max_execution_sec'] );
+            status_log("DCM {$extraction['report_type']} TIMEOUT" .
+                return_safe($extraction['current_profileId'], "profileId: {$extraction['current_profileId']}") .
+                return_safe($extraction['current_floodlightConfigId'], "floodlightConfigId: {$extraction['current_floodlightConfigId']}") .
+                return_safe($extraction['current_advertiserId'], "advertiserId: {$extraction['current_advertiserId']}"));
+            syslog(LOG_DEBUG, "TIMEOUT " . $extraction['max_execution_sec']);
         }
-
-    }
-    else {
-        syslog(LOG_DEBUG, "Report ERROR :  ".$api_response->status );
-        status_log("DCM ERROR {$extraction['report_type']} {$extraction['report_type']}".
-            return_safe($extraction['current_profileId'] , "profileId not found {$extraction['current_profileId']}").
-            return_safe($extraction['current_floodlightConfigId'] , "floodlightConfigId not found {$extraction['current_floodlightConfigId']}").
-            return_safe($extraction['current_advertiserId'] , "advertiserId not found {$extraction['current_advertiserId']}"));
-
-    }
-}
-
-function dcm_headers_cleaner ($raw_data, $extraction, $remove_header_lines, $remove_last_line) {
-    $csv_data = explode("\n", $raw_data);
-
-    if (isset($remove_header_lines)){
-        for ($i = 0; $i < $remove_header_lines; $i++) {
-            syslog(LOG_DEBUG, "removed line".$csv_data[$i]);
-            unset($csv_data[$i]);
-        }
-    }
-
-    if (isset($remove_last_line)){
-        syslog(LOG_DEBUG, "removed last line".end($csv_data));
-        array_pop($csv_data);
-        syslog(LOG_DEBUG, "removed last line2".end($csv_data));
-        array_pop($csv_data);
-    }
-
-
-    //add headers
-    $i= 0;
-    $total = count($csv_data);
-
-    foreach ($csv_data as $key => $line) {
-        if ($i === 0 ) {
-            switch ($extraction['report_type']) {
-                case "STANDARD":
-                case "FLOODLIGHT":
-                    $csv_data[$key] = "ProfileId,".$line;
-                break;
-
-                case "CROSS_DIMENSION_REACH":
-                    $line = explode(",", $line);
-                    $csv_data[$key] = "AdvertiserId,$line[0],$line[1],$line[2],$line[3],$line[4]";
-                break;
-            }
-
-        }
-        else {
-            switch ($extraction['report_type']) {
-                case "STANDARD":
-                case "FLOODLIGHT":
-                    $csv_data[$key] = $extraction['current_profileId'].",".$line;
-                break;
-
-                case "CROSS_DIMENSION_REACH":
-                    $line = explode(",", $line);
-                    $csv_data[$key] = "{$extraction['current_advertiserId']},$line[0],$line[1],$line[2],$line[3],$line[4]";
-                break;
-            }
-        }
-        $i++;
-    }
-
-
-    $csv_data =  implode("\n", $csv_data);
-    return $csv_data."\n";
-}
-
-// DCM errors handle
-function handle_dcm_api_response($api_response)
-{
-    if ($api_response['error']) {
-        return array('error', $api_response['code'].'-'.$api_response['message']);
-    }
-    else if (count($api_response) === 0) {
-        return array('error', 'empty response');
 
     } else {
-        return true;
+        syslog(LOG_DEBUG, "Report ERROR :  " . $api_response->status);
+        status_log("DCM {$extraction['report_type']} ERROR:$api_response->status" .
+            return_safe($extraction['current_profileId'], " profileId: {$extraction['current_profileId']}") .
+            return_safe($extraction['current_floodlightConfigId'], " floodlightConfigId: {$extraction['current_floodlightConfigId']}") .
+            return_safe($extraction['current_advertiserId'], " advertiserId: {$extraction['current_advertiserId']}"));
+    }
+}
+
+function dcm_get_report_header($raw_data, $extraction, $needle)
+{
+
+    $rows = explode("\n", $raw_data);
+
+    if (isset($needle)) {
+        for ($i = 0; $i < count($rows); $i++) {
+
+            if (strpos($rows[$i], $needle) !== false) {
+                if (empty($extraction['csv_output'])) {
+                    switch ($extraction['report_type']) {
+                        case "STANDARD":
+                            $extraction['csv_output'] = "ProfileId," . $rows[$i] . "\n";
+                            syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+
+                            break;
+                        case "FLOODLIGHT":
+                            $extraction['csv_output'] = "ProfileId," . $rows[$i] . "\n";
+                            syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                            break;
+
+                        case "CROSS_DIMENSION_REACH":
+                            $extraction['csv_output'] = "AdvertiserId," . $rows[$i] . "\n";
+                            syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                            break;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+    return $extraction;
+
+}
+
+function dcm_headers_cleaner($raw_data, $extraction, $needle, $remove_last_line)
+{
+    if (empty($raw_data)) {
+        return $raw_data;
+    } else {
+        $rows = explode("\n", $raw_data);
+
+        $total_rows = count($rows);
+
+        //remove headers
+        if (isset($needle)) {
+            for ($i = 0; $i < $total_rows; $i++) {
+
+                if (strpos($rows[$i], $needle) !== false) {
+                    syslog(LOG_DEBUG, "founded needle:" . $needle);
+                    syslog(LOG_DEBUG, "removed last line" . $rows[$i]);
+                    syslog(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
+
+                    if (empty(trim($rows[($i + 1)]))) {
+                        unset($rows[($i + 1)]); //next line is empty
+                    }
+                    unset($rows[$i]);
+                    break;
+                } else {
+                    syslog(LOG_DEBUG, "removed line" . $rows[$i]);
+                    unset($rows[$i]);
+                }
+
+            }
+        } else {
+            syslog(LOG_DEBUG, "needle not FOUND:" . $raw_data);
+        }
+
+        // remove footer
+        if (isset($remove_last_line)) {
+            syslog(LOG_DEBUG, "removed footer line" . end($rows));
+            array_pop($rows);
+            syslog(LOG_DEBUG, "removed footer line2" . end($rows));
+            array_pop($rows);
+        }
+
+        //add id to beginning
+        foreach ($rows as $key => $line) {
+            switch ($extraction['report_type']) {
+                case "STANDARD":
+                case "FLOODLIGHT":
+                    $rows[$key] = $extraction['current_profileId'] . "," . $line;
+                    break;
+
+                case "CROSS_DIMENSION_REACH":
+                    $rows[$key] = $extraction['current_advertiserId'] . "," . $line;
+                    break;
+            }
+        }
+
+        $filter_data = implode("\n", $rows);
+        return $filter_data . "\n";
     }
 
 }
+
+function dcm_preparing_csv_file($raw_data, $extraction)
+{
+    if (mb_strlen($raw_data) > 1) {
+        $extraction['csv_output'] .= $raw_data;
+        status_log("DCM {$extraction['report_type']} OK profileId: {$extraction['current_profileId']} Size Mb:" . mb_strlen($raw_data));
+
+    } else {
+
+        syslog(LOG_DEBUG,"DCM {$extraction['report_type']} EMPTY " .
+            return_safe($extraction['current_profileId'], "profileId: {$extraction['current_profileId']}") .
+            return_safe($extraction['current_floodlightConfigId'], "floodlightConfigId: {$extraction['current_floodlightConfigId']}") .
+            return_safe($extraction['current_advertiserId'], "advertiserId: {$extraction['current_advertiserId']}"));
+        syslog(LOG_DEBUG, $raw_data);
+
+        status_log("DCM {$extraction['report_type']} EMPTY ".
+            return_safe($extraction['current_profileId'], "profileId: {$extraction['current_profileId']}").
+            return_safe($extraction['current_floodlightConfigId'], "floodlightConfigId: {$extraction['current_floodlightConfigId']}").
+            return_safe($extraction['current_advertiserId'], "advertiserId: {$extraction['current_advertiserId']}"));
+    }
+    return $extraction;
+}
+
