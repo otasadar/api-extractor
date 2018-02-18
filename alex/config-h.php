@@ -243,6 +243,9 @@ array_push($extractions['items'], array(
 */
 
 
+
+
+
 //
 //  / ___|  | |_    __ _   _ __     __| |   __ _   _ __    __| |
 //  \___ \  | __|  / _` | | '_ \   / _` |  / _` | | '__|  / _` |
@@ -250,8 +253,6 @@ array_push($extractions['items'], array(
 //  |____/   \__|  \__,_| |_| |_|  \__,_|  \__,_| |_|     \__,_|
 //
 //
-
-
 
 
 
@@ -263,10 +264,15 @@ array_push($extractions['items'], array(
     'report_type' => "STANDARD",
     'max_execution_sec' => 3600,
     'file_name' => "dcm_standard_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
-
+    'credential_email' => 'annalectautomation@gmail.com',
     'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
-    'profileIds' => array('2188767','2896506','2718216','2872652','2719829','2719739','2727409'),
+    'accountsData' => array(
 
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'advertiserId' => '2376384'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'McLaren', 'advertiserId' => '4359113'),
+
+
+    ),
 
     'json_request' => '{
   "name": "test alex",
@@ -289,8 +295,7 @@ array_push($extractions['items'], array(
   },
   "criteria": {
     "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "2018-01-31"
+        "relativeDateRange": "YESTERDAY"
     },
     "dimensions": [
       {
@@ -312,10 +317,150 @@ array_push($extractions['items'], array(
         "name": "dfa:advertiserId"
       },
       {
-        "name": "dfa:campaignId"
+        "name": "dfa:activity"
       },
       {
-        "name": "dfa:date"
+        "name": "dfa:placementCostStructure"
+      }
+    ],
+    "metricNames": [
+      "dfa:bookedImpressions",
+      "dfa:bookedClicks",
+      "dfa:plannedMediaCost",
+      "dfa:impressions",
+      "dfa:clicks",
+      "dfa:mediaCost",
+      "dfa:richMediaInteractions",
+      "dfa:richMediaInteractionRate",
+      "dfa:richMediaVideoPlays",
+      "dfa:richMediaVideoCompletions"
+    ],
+    "dimensionFilters": [
+      {
+        "dimensionName": "dfa:advertiser",
+        "id": "4743311"
+      },
+      {
+        "dimensionName": "dfa:advertiser",
+        "id": "4636880"
+      }
+    ]
+  }
+}'
+));
+
+/*
+array_push($extractions['items'], array(
+    'api' => 'dcm',
+    'api_type' => 'google',
+    'extraction_name' => 'dashboard1',
+    'task_name' => 'standard_historical',
+    'report_type' => "STANDARD",
+    'max_execution_sec' => 3600,
+    'file_name' => "dcm_standard_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'credential_email' => 'annalectautomation@gmail.com',
+    'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
+    'accountsData' => array(
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_AFTERSALES_GCC_AND_LEVANT ', 'advertiserId' => '6197584'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_BRAND_GCC_AND_LEVANT ', 'advertiserId' => '6203268'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_DEALER_GCC_AND_LEVANT ', 'advertiserId' => '6203788'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_SEARCH_GCC_AND_LEVANT ', 'advertiserId' => '6203270'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'MASTER_FLOODLIGHT_AUDI_GCC_AND_LEVANT (DO_NOT_TRAFFIC) ', 'advertiserId' => '6199969'),
+        array('profileId' => '2719739', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Arla Foods', 'advertiserId' => '8271328'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Castello ', 'advertiserId' => '5452626'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Lurpak ', 'advertiserId' => '5449796'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Puck', 'advertiserId' => '5454647'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'The Three cows ', 'advertiserId' => '6977903'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Lexus Tactical Adwords ', 'advertiserId' => '4743311'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Toyota Tactical/Launch ', 'advertiserId' => '4636880'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-Honda', 'advertiserId' => '5308422'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'IKEA', 'advertiserId' => '6961008'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Delphys', 'advertiserId' => '6812091'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Volvo', 'advertiserId' => '8061690'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AFGRE', 'advertiserId' => '8100130'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Guess', 'advertiserId' => '8135621'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Doha Festival City', 'advertiserId' => '8098951'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Dubai Festival City', 'advertiserId' => '6959300'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Automall', 'advertiserId' => '6963390'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Hertz', 'advertiserId' => '6959844'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Robinsons', 'advertiserId' => '8080508'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Marks&Spencer', 'advertiserId' => '8198344'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AF-Retail', 'advertiserId' => '8150568'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Ted Baker', 'advertiserId' => '8213353'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AFAG-Autogroup', 'advertiserId' => '8301146'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-FAMCO', 'advertiserId' => '6417186'),
+        array('profileId' => '2872652', 'networkName' => 'Bentley Motors c/o PHD International - DFA EMEA', 'advertiserName' => 'Bentley - UAE ', 'advertiserId' => '3875593'),
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon - MENA ', 'advertiserId' => '6927278'),
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'advertiserId' => '2376384'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'ADMAF', 'advertiserId' => '8324528'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Daman', 'advertiserId' => '8386540'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Avenue', 'advertiserId' => '4407259'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Bosch Siemens', 'advertiserId' => '4116173'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'DAFZA', 'advertiserId' => '4944371'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Dubai World Trade Center', 'advertiserId' => '4509632'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Ellington Group', 'advertiserId' => '6567610'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Ferrero', 'advertiserId' => '5089702'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Louvre AD', 'advertiserId' => '8157464'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mashreq Bank', 'advertiserId' => '4343157'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'McLaren', 'advertiserId' => '4359113'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Meraas Holding', 'advertiserId' => '5584068'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mubadala', 'advertiserId' => '3313505'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'New York University Abu Dhabi', 'advertiserId' => '5559511'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'NFPC', 'advertiserId' => '4448188'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Pizza Hut', 'advertiserId' => '4797970'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Porsche', 'advertiserId' => '3253807'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Power Horse', 'advertiserId' => '3125621'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Roads and Transport Authority (RTA)', 'advertiserId' => '8343518'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Saadiyat Development and Investment Company', 'advertiserId' => '4884700'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'SC Johnson', 'advertiserId' => '5002322'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'TDIC', 'advertiserId' => '3047713'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Unilever', 'advertiserId' => '4448401'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Abu Dhabi Film Festival (ADFF) ', 'advertiserId' => '3824854'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'All About Brands', 'advertiserId' => '4854554')
+    ),
+
+    'json_request' => '{
+  "name": "test alex",
+  "type": "STANDARD",
+  "delivery": {
+    "recipients": [
+      {
+        "deliveryType": "LINK",
+        "email": "annalectautomation@gmail.com"
+      }
+    ]
+  },
+  "schedule": {
+    "active": false,
+    "expirationDate": "2018-01-25",
+    "repeats": "MONTHLY",
+    "startDate": "2018-01-25",
+    "runsOnDayOfMonth": "DAY_OF_MONTH",
+    "every": 12
+  },
+  "criteria": {
+    "dateRange": {
+        "relativeDateRange": "YESTERDAY"
+    },
+    "dimensions": [
+      {
+        "name": "dfa:campaign"
+      },
+      {
+        "name": "dfa:site"
+      },
+      {
+        "name": "dfa:placement"
+      },
+      {
+        "name": "dfa:creativeSize"
+      },
+      {
+        "name": "dfa:advertiser"
+      },
+      {
+        "name": "dfa:advertiserId"
       },
       {
         "name": "dfa:activity"
@@ -335,12 +480,24 @@ array_push($extractions['items'], array(
       "dfa:richMediaInteractionRate",
       "dfa:richMediaVideoPlays",
       "dfa:richMediaVideoCompletions"
+    ],
+    "dimensionFilters": [
+      {
+        "dimensionName": "dfa:advertiser",
+        "id": "4743311"
+      },
+      {
+        "dimensionName": "dfa:advertiser",
+        "id": "4636880"
+      }
     ]
   }
 }'
 ));
+*/
 
-/*
+
+
 //   _____   _                       _   _   _           _       _
 //  |  ___| | |   ___     ___     __| | | | (_)   __ _  | |__   | |_
 //  | |_    | |  / _ \   / _ \   / _` | | | | |  / _` | | '_ \  | __|
@@ -349,6 +506,7 @@ array_push($extractions['items'], array(
 //                                               |___/
 
 
+/*
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
@@ -357,17 +515,44 @@ array_push($extractions['items'], array(
     'max_execution_sec' => 3600,
     'report_type' => 'FLOODLIGHT',
     'file_name' => "dcm_floodlight_historical_1_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'credential_email' => 'annalectautomation@gmail.com',
     'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
-
-    'profileIds' => array('2188767','2896506','2718216','2872652'),
-    'floodlightConfigIds' => array(
-        '2188767' =>  array('4711608', '4898321', '5308422'),
-        '2896506' =>  array('6199969'),
-        '2718216' =>  array('2376384'),
-        '2872652' =>  array('3801822')
+    'accountsData' => array(
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_COMBO', 'floodlightConfigId' => '6199969'),
+        array('profileId' => '2719739', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'floodlightConfigId' => '5912534'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Lurpak ', 'floodlightConfigId' => '5449796'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Puck', 'floodlightConfigId' => '5454647'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Lexus Tactical Adwords ', 'floodlightConfigId' => '4898321'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Toyota Tactical/Launch ', 'floodlightConfigId' => '4711608'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-Honda', 'floodlightConfigId' => '5308422'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Volvo', 'floodlightConfigId' => '8061690'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AFGRE', 'floodlightConfigId' => '8100130'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Automall', 'floodlightConfigId' => '6963390'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Hertz', 'floodlightConfigId' => '6959844'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-FAMCO', 'floodlightConfigId' => '6417186'),
+        array('profileId' => '2872652', 'networkName' => 'Bentley Motors c/o PHD International - DFA EMEA', 'advertiserName' => 'Bentley - UAE ', 'floodlightConfigId' => '3801822'),
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'floodlightConfigId' => '2376384'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'ADMAF', 'floodlightConfigId' => '8324528'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Daman', 'floodlightConfigId' => '8386540'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Avenue', 'floodlightConfigId' => '4407259'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Bosch Siemens', 'floodlightConfigId' => '4116173'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'DAFZA', 'floodlightConfigId' => '4944371'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Dubai World Trade Center', 'floodlightConfigId' => '4509632'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Ellington Group', 'floodlightConfigId' => '6567610'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Louvre AD', 'floodlightConfigId' => '8157464'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mashreq Bank', 'floodlightConfigId' => '4343157'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'McLaren', 'floodlightConfigId' => '4359113'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Meraas Holding', 'floodlightConfigId' => '5584068'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mubadala', 'floodlightConfigId' => '3313505'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Pizza Hut', 'floodlightConfigId' => '4797970'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Porsche', 'floodlightConfigId' => '3253807'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Power Horse', 'floodlightConfigId' => '3125621'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Roads and Transport Authority (RTA)', 'floodlightConfigId' => '8343518'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Saadiyat Development and Investment Company', 'floodlightConfigId' => '4884700'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'TDIC', 'floodlightConfigId' => '3047713'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Unilever', 'floodlightConfigId' => '4448401'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'All About Brands', 'floodlightConfigId' => '4854554')
     ),
-
-
     'json_request' => '{
           "name": "test alex",
           "type": "FLOODLIGHT",
@@ -389,8 +574,7 @@ array_push($extractions['items'], array(
           },
           "floodlightCriteria": {
             "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "2018-01-31"
+               "relativeDateRange": "YESTERDAY"
             },
             "dimensions": [
               {"name": "dfa:campaign"},
@@ -417,143 +601,8 @@ array_push($extractions['items'], array(
           }
         }'
 ));
+*/
 
-
-array_push($extractions['items'], array(
-    'api' => 'dcm',
-    'api_type' => 'google',
-    'extraction_name' => 'dashboard1',
-    'task_name' => 'floodlight_historical_2',
-    'max_execution_sec' => 3600,
-    'report_type' => 'FLOODLIGHT',
-    'file_name' => "dcm_floodlight_historical_2_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
-    'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
-
-    'profileIds' => array('2719829','2719739','2727409'),
-    'floodlightConfigIds' => array(
-
-        '2719829' =>  array('5454647','8271328'),
-        '2719739' =>  array('5912534'),
-        '2727409' =>  array('4473419','4251577','4116173','4944371','4509632','6567610','5089702','4745537','4343157','4359113','5584068','3313505','4797970','3253807','3125621','4884700','5002322','3047713')
-    ),
-
-
-    'json_request' => '{
-          "name": "test alex",
-          "type": "FLOODLIGHT",
-          "delivery": {
-            "recipients": [
-              {
-                "deliveryType": "LINK",
-                "email": "annalectautomation@gmail.com"
-              }
-            ]
-          },
-          "schedule": {
-            "active": false,
-            "expirationDate": "2018-01-24",
-            "repeats": "MONTHLY",
-            "startDate": "2018-01-24",
-            "runsOnDayOfMonth": "DAY_OF_MONTH",
-            "every": 12
-          },
-          "floodlightCriteria": {
-            "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "2018-01-31"
-            },
-            "dimensions": [
-              {"name": "dfa:campaign"},
-              {"name": "dfa:site"},
-              {"name": "dfa:placement"},
-              {"name": "dfa:creativeSize"},
-              {"name": "dfa:advertiser"},
-              {"name": "dfa:advertiserId"},
-              {"name": "dfa:campaignId"},
-              {"name": "dfa:date"},
-              {"name": "dfa:floodlightConfigId"},
-              {"name": "dfa:activity"},
-              {"name": "dfa:activityId"}
-            ],
-            "metricNames": [
-              "dfa:activityClickThroughConversions",
-              "dfa:activityViewThroughConversions",
-              "dfa:totalConversions"
-            ],
-            "floodlightConfigId": {
-              "value": "123456",
-              "dimensionName": "dfa:floodlightConfigId"
-            }
-          }
-        }'
-));
-
-
-array_push($extractions['items'], array(
-    'api' => 'dcm',
-    'api_type' => 'google',
-    'extraction_name' => 'dashboard1',
-    'task_name' => 'floodlight_historical_3',
-    'max_execution_sec' => 3600,
-    'report_type' => 'FLOODLIGHT',
-    'file_name' => "dcm_floodlight_historical_3_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
-    'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
-
-    'profileIds' => array('2727409'),
-    'floodlightConfigIds' => array(
-        '2727409' =>  array('3253807','3125621','4884700','5002322','3047713')
-    ),
-
-
-    'json_request' => '{
-          "name": "test alex",
-          "type": "FLOODLIGHT",
-          "delivery": {
-            "recipients": [
-              {
-                "deliveryType": "LINK",
-                "email": "annalectautomation@gmail.com"
-              }
-            ]
-          },
-          "schedule": {
-            "active": false,
-            "expirationDate": "2018-01-24",
-            "repeats": "MONTHLY",
-            "startDate": "2018-01-24",
-            "runsOnDayOfMonth": "DAY_OF_MONTH",
-            "every": 12
-          },
-          "floodlightCriteria": {
-            "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "2018-01-31"
-            },
-            "dimensions": [
-              {"name": "dfa:campaign"},
-              {"name": "dfa:site"},
-              {"name": "dfa:placement"},
-              {"name": "dfa:creativeSize"},
-              {"name": "dfa:advertiser"},
-              {"name": "dfa:advertiserId"},
-              {"name": "dfa:campaignId"},
-              {"name": "dfa:date"},
-              {"name": "dfa:floodlightConfigId"},
-              {"name": "dfa:activity"},
-              {"name": "dfa:activityId"}
-            ],
-            "metricNames": [
-              "dfa:activityClickThroughConversions",
-              "dfa:activityViewThroughConversions",
-              "dfa:totalConversions"
-            ],
-            "floodlightConfigId": {
-              "value": "123456",
-              "dimensionName": "dfa:floodlightConfigId"
-            }
-          }
-        }'
-));
 
 
 //
@@ -565,6 +614,7 @@ array_push($extractions['items'], array(
 //
 
 
+/*
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
@@ -573,32 +623,66 @@ array_push($extractions['items'], array(
     'max_execution_sec' => 3600,
     'report_type' => "CROSS_DIMENSION_REACH",
     'file_name' => "dcm_crossreach_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'credential_email' => 'annalectautomation@gmail.com',
     'refresh_token' => '1/ymsZ6LP831oYWPc71ULlMt5hQG7zxs1nJG3SISJL7birTQexP-s4qh2O1RdHXIjH',
-
-    'advertiserIds' => array(
-        '2188767' =>  array('4743311', '4636880', '5308422' ),
-        '2896506' =>  array('6203268','6203788'),
-        '2718216' =>  array('2376384'),
-        '2872652' =>  array('3875593'),
-        '2719829' =>  array('5454647','5449796'),
-        '2719739' =>  array('5912534'),
-        '2727409' =>  array('4473419',
-            '4251577',
-            '4116173',
-            '4944371',
-            '4509632',
-            '6567610',
-            '5089702',
-            '4343157',
-            '4359113',
-            '5584068',
-            '3313505',
-            '4797970',
-            '3253807',
-            '3125621',
-            '4884700',
-            '5002322',
-            '3047713')
+    'accountsData' => array(
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_AFTERSALES_GCC_AND_LEVANT ', 'advertiserId' => '6197584'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_BRAND_GCC_AND_LEVANT ', 'advertiserId' => '6203268'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_DEALER_GCC_AND_LEVANT ', 'advertiserId' => '6203788'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_SEARCH_GCC_AND_LEVANT ', 'advertiserId' => '6203270'),
+        array('profileId' => '2896506', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'MASTER_FLOODLIGHT_AUDI_GCC_AND_LEVANT (DO_NOT_TRAFFIC) ', 'advertiserId' => '6199969'),
+        array('profileId' => '2719739', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Arla Foods', 'advertiserId' => '8271328'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Castello ', 'advertiserId' => '5452626'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Lurpak ', 'advertiserId' => '5449796'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Puck', 'advertiserId' => '5454647'),
+        array('profileId' => '2719829', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'The Three cows ', 'advertiserId' => '6977903'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Lexus Tactical Adwords ', 'advertiserId' => '4743311'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Toyota Tactical/Launch ', 'advertiserId' => '4636880'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-Honda', 'advertiserId' => '5308422'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'IKEA', 'advertiserId' => '6961008'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Delphys', 'advertiserId' => '6812091'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Volvo', 'advertiserId' => '8061690'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AFGRE', 'advertiserId' => '8100130'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Guess', 'advertiserId' => '8135621'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Doha Festival City', 'advertiserId' => '8098951'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Dubai Festival City', 'advertiserId' => '6959300'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Automall', 'advertiserId' => '6963390'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Hertz', 'advertiserId' => '6959844'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Robinsons', 'advertiserId' => '8080508'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Marks&Spencer', 'advertiserId' => '8198344'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AF-Retail', 'advertiserId' => '8150568'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Ted Baker', 'advertiserId' => '8213353'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'AFAG-Autogroup', 'advertiserId' => '8301146'),
+        array('profileId' => '2188767', 'networkName' => 'PHD Dubai - AFM - DCM', 'advertiserName' => 'Al Futtaim-FAMCO', 'advertiserId' => '6417186'),
+        array('profileId' => '2872652', 'networkName' => 'Bentley Motors c/o PHD International - DFA EMEA', 'advertiserName' => 'Bentley - UAE ', 'advertiserId' => '3875593'),
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon - MENA ', 'advertiserId' => '6927278'),
+        array('profileId' => '2718216', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'advertiserId' => '2376384'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'ADMAF', 'advertiserId' => '8324528'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Daman', 'advertiserId' => '8386540'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Avenue', 'advertiserId' => '4407259'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Bosch Siemens', 'advertiserId' => '4116173'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'DAFZA', 'advertiserId' => '4944371'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Dubai World Trade Center', 'advertiserId' => '4509632'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Ellington Group', 'advertiserId' => '6567610'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Ferrero', 'advertiserId' => '5089702'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Louvre AD', 'advertiserId' => '8157464'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mashreq Bank', 'advertiserId' => '4343157'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'McLaren', 'advertiserId' => '4359113'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Meraas Holding', 'advertiserId' => '5584068'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Mubadala', 'advertiserId' => '3313505'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'New York University Abu Dhabi', 'advertiserId' => '5559511'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'NFPC', 'advertiserId' => '4448188'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Pizza Hut', 'advertiserId' => '4797970'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Porsche', 'advertiserId' => '3253807'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Power Horse', 'advertiserId' => '3125621'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Roads and Transport Authority (RTA)', 'advertiserId' => '8343518'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Saadiyat Development and Investment Company', 'advertiserId' => '4884700'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'SC Johnson', 'advertiserId' => '5002322'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'TDIC', 'advertiserId' => '3047713'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Unilever', 'advertiserId' => '4448401'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Abu Dhabi Film Festival (ADFF) ', 'advertiserId' => '3824854'),
+        array('profileId' => '2727409', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'All About Brands', 'advertiserId' => '4854554')
     ),
     'json_request' => '{
   "name": "test alex",
@@ -621,8 +705,7 @@ array_push($extractions['items'], array(
   },
   "crossDimensionReachCriteria": {
     "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "2018-01-31"
+        "relativeDateRange": "YESTERDAY"
     },
     "metricNames": [
       "dfa:exclusiveClickReach",

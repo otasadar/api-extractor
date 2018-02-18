@@ -1,5 +1,5 @@
 #application: annalect-api-jobs
-service: api-extractor-staging-2
+service: api-extractor-staging
 #version: v1
 
 runtime: php55
@@ -18,24 +18,32 @@ handlers:
   script: start.php
   secure: always
 
+- url: /(.+\.(ico|jpg|png|gif|woff2|ttf|svg))$
+  static_files: \1
+  upload: (.+\.(ico|jpg|png|gif|woff2|ttf|svg))$
+  expiration: "365d"
+
+- url: /(.+\.(htm|html|css|js|svg))$
+  static_files: \1
+  upload: (.+\.(htm|html|css|js|svg))$
+  expiration: "365d"
+  application_readable: true
+
+
 - url: /
   script: index.php
   secure: always
 
-- url: /run-y
-  script: run-y.php
+- url: /save-config
+  script: save-config.php
   secure: always
 
-- url: /run-h
-  script: run-h.php
+- url: /run
+  script: run.php
   secure: always
 
 - url: /run-tasks
   script: tasker.php
-  secure: always
-
-- url: /edit
-  script: edit.php
   secure: always
 
 - url: /test
@@ -45,7 +53,3 @@ handlers:
 - url: /test2
   script: test2.php
   secure: always
-
-  - url: /log
-    script: log.php
-    secure: always

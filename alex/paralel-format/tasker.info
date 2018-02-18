@@ -1,4 +1,5 @@
 <?php
+
 ini_set('display_errors', 1);
 date_default_timezone_set('Asia/Dubai');
 
@@ -322,6 +323,10 @@ function set_curl($headers, $endpoint, $payload, $type, $extras = null)
     curl_close($curl);
 
     if (strpos($info['http_code'], '30') !== false) {
+        $file_size = get_curl_remote_file_size($info['redirect_url']);
+        status_log( "filesize:" . $file_size);
+        syslog(LOG_DEBUG, "filesize:" . $file_size);
+
         $response = set_simple_curl($info['redirect_url']);
         syslog(LOG_DEBUG, "simple curl :" . mb_strlen($response));
         return $response;
