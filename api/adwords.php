@@ -6,37 +6,58 @@
  * Date: 2/17/2018
  * Time: 12:55 PM
  */
+
+include_once  __DIR__ . '/helpers.php';
+
+
 class adwords
 {
     // Google Adwords API call (Response handler)
     function handle_adwords_api_response($api_response, $extraction)
     {
-        if (is_array($api_response)) {
 
-            if ($api_response[0] === 'error') {
+        $helpers = new helpers();
 
-                $error_reason = '';
-                $error_reason_xml = $api_response[1];
-                $error_reason_array = explode('</type>', $error_reason_xml);
+        $error_reason = '';
+        $error_reason_xml = $api_response[1];
+        $error_reason_array = explode('</type>', $error_reason_xml);
 
-                foreach (array_slice($error_reason_array, 0, sizeof(explode('</type>', $error_reason_xml)) - 1) as $item) {
-                    $error_reason = $error_reason === '' ? explode('Error.', $item)[1] : $error_reason . ', ' . explode('Error.', $item)[1];
-                }
-
-                syslog(LOG_DEBUG, "AdWords API connection Error " . $api_response);
-                status_log("AdWords API_Error" . $api_response . " accountId: {$extraction['current_accountId']} file_name: {$extraction['file_name']}");
-                return false;
-            }
-
-        } else {
-
-            return $api_response;
+        foreach (array_slice($error_reason_array, 0, sizeof(explode('</type>', $error_reason_xml)) - 1) as $item) {
+            $error_reason = $error_reason === '' ? explode('Error.', $item)[1] : $error_reason . ', ' . explode('Error.', $item)[1];
         }
+
+
+        $log_values = Array(
+            $extraction['api'],
+            $extraction['task_name'],
+            $extraction['current']['accountId'],
+            $extraction['current']['accountName'],
+            $extraction['report'],
+            $api_response[0],
+            $error_reason);
+        syslog(LOG_DEBUG, json_encode($log_values));
+        $helpers->result_log($extraction, $log_values);
+
     }
 
 // Google Adwords API call (HTTP API request and AND conditions)
-    function set_adwords_request($account, $report, $metrics, $startDate, $endDate, $access_token, $developer_token, $skip_headers, $extraction)
+    function set_adwords_request($extraction)
     {
+        $helpers = new helpers();
+        $account =$extraction['current']['accountId'];
+        $report = $extraction['report'];
+        $metrics = $extraction['metrics'];
+        $startDate = $extraction['startDate'];
+        $endDate = $extraction['endDate'];
+        $access_token = $extraction['access_token'];
+        $developer_token = $extraction['global']['google']['developer_token'];
+        if ($extraction['current']['key'] === 0) {
+            $skip_headers = true;
+        } else {
+            $skip_headers = false;
+        }
+
+
 
         //Call headers
         $headers = array('contentType: application/x-www-form-urlencoded',
@@ -57,7 +78,14 @@ class adwords
         $payload = "__fmt=CSV&__rdquery= SELECT $metrics FROM $report DURING $startDate,$endDate";
 
         //CURL request
-        $curl_response = set_curl_adwords($headers, $endpoint, $payload, 'POST', null, $extraction);
+
+        $curl_response = $helpers->set_curl($headers, $endpoint, $payload, 'POST', null);
+
+        // error case
+        if (is_array ($curl_response)){
+            syslog(LOG_DEBUG, json_encode($curl_response));
+            return $this->handle_adwords_api_response($curl_response, $extraction);
+        }
 
         //Return API data
         if ($curl_response) {
@@ -68,6 +96,36 @@ class adwords
     }
 
 
+    function split_dates($start_date_str, $split_day_period) {
+
+        $now = new DateTime();
+        $start_date = new DateTime($start_date_str);
+        $since_start = $start_date->diff(new DateTime($now->format('Ymd')));
+        $diff = $since_start->days;
+
+        function addDays ($date, $days) {
+            $date = new DateTime($date);
+            date_modify($date, "+$days day");
+            return date_format($date, 'Ymd');
+        }
+
+        $data_periods = [];
+
+        for ($i = 0; $i <= $diff; $i+=$split_day_period) {
+
+            $tmp_period = $i+$split_day_period-1;
+            if ($tmp_period > $diff) {
+                $tmp_period = $diff;
+            }
+            $startDate = addDays ($start_date_str, $i);
+            $endDate = addDays ($start_date_str, $tmp_period);
+
+            $data_periods[] = array( 'startDate'=> $startDate , 'endDate'=> $endDate  );
+
+        }
+
+        return $data_periods;
+    }
 
 
 }

@@ -117,7 +117,6 @@ class helpers
         curl_close($curl);
 
         if (strpos($info['http_code'], '30') !== false) {
-            //result_log($extraction, $log_values);
 
             syslog(LOG_DEBUG, "URL size before downlodad:" . $this->get_curl_remote_file_size($info['redirect_url']));
 
@@ -130,6 +129,7 @@ class helpers
             syslog(LOG_DEBUG, "error curl :" . json_encode($headers));
             syslog(LOG_DEBUG, "error curl :" . $response);
             syslog(LOG_DEBUG, "error curl :" . $type);
+            return array($info['http_code'], $response);
         } else {
             return $response;
         }
@@ -339,7 +339,7 @@ class helpers
 // log using google sheet
     function result_log($extraction, $row)
     {
-        $now = new DateTime();;
+        $now = new DateTime();
         array_unshift($row,  $now->format('d-m-Y'),  $now->format('H:i:s'));
         $extraction = $this->check_access_token($extraction, 'sheets');
         $sheet_id = $extraction['global']['google_sheet']['tmp_sheet_id'];

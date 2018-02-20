@@ -6,15 +6,11 @@ echo "v2";
 
 // remove set_curl_adwords() from google storage
 
-// todo move all current_ to array current
 
-// todo create super object from config
 // todo manage 404 api response
-// todo add csv headers in object instead of capture for first line, for avoid null first report
 // todo manage FAIL response
 // todo add message when timeout
 // todo remove profiles id duplicates in config file
-// todo modify floodId validation with list
 // todo move this api switch to task for mutliples task, require open csv files
 
 
@@ -34,6 +30,7 @@ $dcm = new dcm();
 $extraction = $_POST['extraction'];
 $extraction['extraction_id'] = $_POST['extraction_id'];
 $extraction['csv_output'] = '';
+$extraction['reportsData'] = '';
 $extraction['file_name_tpl'] = $extraction['file_name'];
 $skip_headers = 'false'; //todo move this variable
 
@@ -68,36 +65,76 @@ switch ($extraction['api_type']) {
 
 switch ($extraction['api']) {
     case "adwords":
-        foreach ($extraction['accounts'] as $key => $account) {
+        foreach ($extraction['accountsData'] as $key => $account) {
 
-            $helpers->status_log("AdWords Start accountId: $account file_name: {$extraction['file_name']}");
-            $extraction['current_accountId'] = $account;
-            $account_data = $adwords->set_adwords_request(
-                $account,
+            $extraction['current'] = $account;
+            $extraction['current']['key'] = $key;
+
+
+            // Start
+            $log_values = Array(
+                $extraction['api'],
+                $extraction['task_name'],
+                $extraction['current']['accountId'],
+                $extraction['current']['accountName'],
                 $extraction['report'],
-                $extraction['metrics'],
-                $extraction['startDate'],
-                $extraction['endDate'],
-                $extraction['access_token'],
-                $developer_token,
-                $skip_headers,
-                $extraction
-            );
-            $skip_headers = 'true';
-            //$extraction['csv_output'] .= $account_data ? $account_data : '';
+                "START",
+                null);
+            syslog(LOG_DEBUG, json_encode($log_values));
+            $extraction = $helpers->result_log($extraction, $log_values);
+
+            /*
+            if (isset($extraction['split_day_period'])) {
+                $dates = split_dates($extraction['startDate'], $extraction['endDate']);
+                foreach ($dates as $date) {
+                    $extraction['task_name']
+                    $extraction['startDate'] = $date['startDate'];
+                    $extraction['endDate'] = $date['endDate'];
+                    $account_data = $adwords->set_adwords_request($extraction);
+                }
+            } else {
+                $account_data = $adwords->set_adwords_request($extraction);
+            }
+            */
+            $account_data = $adwords->set_adwords_request($extraction);
+
+            $lines_counter = substr_count($account_data, "\n");
+            syslog(LOG_DEBUG, "lines_counter:" . $lines_counter);
+            syslog(LOG_DEBUG, "RESULT:" . $account_data);
+
 
             // storage
-            if (mb_strlen($account_data) > 1) {
+            if ($key === 0 && $lines_counter > 1) {
                 $extraction['csv_output'] .= $account_data;
-                $helpers->status_log("AdWords OK accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
-
+                $result = "OK";
+            } else if ($key === 0 && $lines_counter < 2) {
+                $extraction['csv_output'] .= $account_data; // add header
+                $result = "EMPTY";
+            } else if ($lines_counter < 2) {
+                $result = "EMPTY";
             } else {
-                syslog(LOG_DEBUG, "AdWords EMPTY accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
-                syslog(LOG_DEBUG, $account_data);
-                $helpers->status_log("AdWords EMPTY accountId: $account file_name: {$extraction['file_name']} SizeMb: " . mb_strlen($account_data));
+                $extraction['csv_output'] .= $account_data;
+                $result = "OK";
             }
+
+            $log_values = Array(
+                $extraction['api'],
+                $extraction['task_name'],
+                $extraction['current']['accountId'],
+                $extraction['current']['accountName'],
+                $extraction['report'],
+                $result,
+                mb_strlen($account_data));
+            syslog(LOG_DEBUG, json_encode($log_values));
+            $extraction = $helpers->result_log($extraction, $log_values);
+
+
         }
-        $helpers->create_csv_file($extraction['csv_output'], $extraction, $storage_data);
+
+        $helpers->create_csv_file($extraction);
+        $bucket = $extraction['global']['storage_data']['bucket'];
+        syslog(LOG_DEBUG, "Saving CSV to bucket : $bucket filename: {$extraction['file_name']}");
+
         break;
 
     case "dcm":
@@ -111,6 +148,7 @@ switch ($extraction['api']) {
         // adjust accountData Array
         $extraction['accountsData'] = $dcm->merge_profileId_array($extraction['accountsData']);
 
+        // First loop : get reportId and fileId
         foreach ($extraction['accountsData'] as $profileId => $accountData) {
 
             // profileId validation
@@ -165,6 +203,11 @@ switch ($extraction['api']) {
                         }
 
                         $extraction['json_request'] = json_decode($extraction['json_request']);
+                        if (isset($extraction['json_request']->criteria->dateRange->endDate)) {
+                            if ($extraction['json_request']->criteria->dateRange->endDate === 'YESTERDAY') {
+                                $extraction['json_request']->criteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                            }
+                        }
                         $extraction['json_request']->criteria->dimensionFilters[0]->dimensionName = "dfa:advertiser";
                         $extraction['json_request']->criteria->dimensionFilters[0]->id = $advertiserId;
                         $extraction['json_request'] = json_encode($extraction['json_request']);
@@ -194,6 +237,11 @@ switch ($extraction['api']) {
 
                         // edit report json request dynamically
                         $extraction['json_request'] = json_decode($extraction['json_request']);
+                        if (isset($extraction['json_request']->floodlightCriteria->dateRange->endDate)) {
+                            if ($extraction['json_request']->floodlightCriteria->dateRange->endDate === 'YESTERDAY') {
+                                $extraction['json_request']->floodlightCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                            }
+                        }
                         $extraction['json_request']->floodlightCriteria->floodlightConfigId->value = $floodlightConfigId;
                         $extraction['json_request'] = json_encode($extraction['json_request']);
                         break;
@@ -220,6 +268,11 @@ switch ($extraction['api']) {
                         }
 
                         $extraction['json_request'] = json_decode($extraction['json_request']);
+                        if (isset($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate)) {
+                            if ($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate === 'YESTERDAY') {
+                                $extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                            }
+                        }
                         $extraction['json_request']->crossDimensionReachCriteria->dimensionFilters[0]->id = $advertiserId;
                         $extraction['json_request'] = json_encode($extraction['json_request']);
                         break;
@@ -230,9 +283,26 @@ switch ($extraction['api']) {
                 }
 
                 // start pull data
-                $raw_data = $dcm->start($extraction, $profileId);
+                $extraction = $dcm->start($extraction, $profileId);
+
+            }
+
+        }
+
+
+        syslog(LOG_DEBUG, "check control reportsData" . json_encode($extraction['reportsData']));
+
+
+        // Second loop : ask and wait for content
+        foreach ($extraction['reportsData'] as $row) {
+
+            $extraction = $helpers->check_access_token($extraction);
+            $extraction['current'] = $row;
+
+            if (isset($row['reportId']) && isset($row['fileId'])) {
+                $raw_data = $dcm->ask_until_status_available($extraction);
                 // error case
-                if ($raw_data === 'FAILED' || $raw_data === 'CANCELLED')  {
+                if ($raw_data === 'FAILED' || $raw_data === 'CANCELLED') {
                     $log_values = Array(
                         $extraction['api'],
                         $helpers->return_isset($extraction['current']['profileId']),
@@ -253,7 +323,6 @@ switch ($extraction['api']) {
                 $extraction = $dcm->get_report_header($raw_data, $extraction, 'Campaign');
                 $raw_data = $dcm->headers_cleaner($raw_data, $extraction, 'Campaign', true);
                 $extraction = $dcm->preparing_csv_file($raw_data, $extraction);
-
             }
 
         }

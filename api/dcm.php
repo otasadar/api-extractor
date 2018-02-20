@@ -14,7 +14,7 @@ class dcm
 {
 
     /**
-     * DCM Validations for avoid run report on wrong or unexists ID's
+     * DCM Validations for avoid run report on wrong or non-existing ID's
      */
 
     function __construct()
@@ -39,6 +39,7 @@ class dcm
         if (!empty($profileIdsValidated)) {
             syslog(LOG_DEBUG, "dcm_check_profilesIds " . implode(',', $profileIdsValidated));
         }
+        sleep(1);
         return $profileIdsValidated;
 
     }
@@ -66,7 +67,7 @@ class dcm
         if (!empty($floodlightConfigIdsValidated)) {
             syslog(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
         }
-
+        sleep(1);
         return $floodlightConfigIdsValidated;
 
     }
@@ -77,6 +78,9 @@ class dcm
 
         $helpers = new helpers();
         $advertiserIds = [];
+        syslog(LOG_DEBUG, "check control adid-1" . json_encode($advertiserIds));
+        syslog(LOG_DEBUG, "check control adid" . json_encode($extraction['accountsData'][$profileId] ));
+
         foreach ($extraction['accountsData'][$profileId] as $row) {
             $advertiserIds[] = $row['advertiserId'];
         }
@@ -94,7 +98,7 @@ class dcm
         if (!empty($advertiserIdsValidated)) {
             syslog(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
         }
-
+        sleep(1);
         return $advertiserIdsValidated;
 
     }
@@ -107,11 +111,14 @@ class dcm
     // DCM First Function for start a combo of DCM request
     function start($extraction, $profileId)
     {
-        $extraction['profileId'] = $profileId;
         $api_response = $this->report_setup($profileId, $extraction);
+        $extraction['current']['reportId'] = $api_response->id;
         $api_response = $this->run_report($api_response, $extraction);
-        $api_response = $this->ask_until_status_available($api_response, $extraction);
-        return $api_response;
+        $extraction['current']['fileId'] = $api_response->id;
+        $extraction['reportsData'][] = $extraction['current'];
+
+        //$api_response = $this->ask_until_status_available($api_response, $extraction);
+        return $extraction;
 
         /*
         if (isset($api_response)) {
@@ -164,7 +171,7 @@ class dcm
         //syslog(LOG_DEBUG, "profileId ".$profileId );
         //
         syslog(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
-
+        sleep(1);
         return $curl_response;
     }
 
@@ -187,18 +194,20 @@ class dcm
         //syslog(LOG_DEBUG, "reportId ".$reportId );
         //syslog(LOG_DEBUG, "profileId ".$profileId );
         syslog(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
-
+        sleep(1);
         return $curl_response;
     }
 
     // DCM request 3 - Check if media report file is generated
-    function get_report_url($api_response, $extraction)
+    function get_report_url($extraction)
     {
 
 
-        $profileId = $extraction['profileId'];
-        $reportId = $api_response->reportId;
-        $fileId = $api_response->id;
+        $profileId = $extraction['current']['profileId'];
+        //$reportId = $api_response->reportId;
+        //$fileId = $api_response->id;
+        $reportId = $extraction['current']['reportId'];
+        $fileId = $extraction['current']['fileId'];
         $access_token = $extraction['access_token'];
         $headers = array("Authorization: Bearer $access_token ", 'Accept: application/json');
         $helpers = new helpers();
@@ -213,7 +222,7 @@ class dcm
         //syslog(LOG_DEBUG, "profileId ".$profileId );
         //syslog(LOG_DEBUG, "fileId ".$fileId );
         syslog(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
-
+        sleep(1);
         return $curl_response;
     }
 
@@ -240,19 +249,11 @@ class dcm
     }
 
     // DCM recursive functions for get report data
-    function ask_until_status_available($api_response, $extraction)
+    function ask_until_status_available($extraction)
     {
         $helpers = new helpers();
         $extraction = $helpers->check_access_token($extraction);
-        $api_response = $this->get_report_url($api_response, $extraction);
-        /*
-        if (!isset($extraction['queueDelay'])) {
-            $extraction['queueDelay'] = 5;
-        } else {
-            $extraction['queueDelay'] = $extraction['queueDelay'] * 2;
-        }
-        */
-
+        $api_response = $this->get_report_url($extraction);
 
         if ($api_response->status === "REPORT_AVAILABLE") {
             $api_response2 = $this->get_report_url_content($api_response, $extraction);
@@ -261,7 +262,7 @@ class dcm
         } else if ($api_response->status === "PROCESSING") {
             syslog(LOG_DEBUG, "queueDelay:60");
             sleep(60);
-            return $this->ask_until_status_available($api_response, $extraction);
+            return $this->ask_until_status_available($extraction);
 
 
             /*
