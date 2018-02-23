@@ -345,13 +345,14 @@ class dcm
     function get_report_header($raw_data, $extraction, $needle)
     {
 
-        $rows = explode("\n", $raw_data);
+        if (empty($extraction['csv_output'])) {
+            $rows = explode("\n", $raw_data);
 
-        if (isset($needle)) {
-            for ($i = 0; $i < count($rows); $i++) {
+            if (isset($needle)) {
+                for ($i = 0; $i < count($rows); $i++) {
 
-                if (strpos($rows[$i], $needle) !== false) {
-                    if (empty($extraction['csv_output'])) {
+                    if (strpos($rows[$i], $needle) !== false) {
+
                         switch ($extraction['report_type']) {
                             case "STANDARD":
                                 $extraction['csv_output'] = "profileId," . $rows[$i] . "\n";
@@ -368,12 +369,14 @@ class dcm
                                 syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
                                 break;
                         }
-                    }
 
-                    break;
+
+                        break;
+                    }
                 }
             }
         }
+
         return $extraction;
 
     }
@@ -395,9 +398,10 @@ class dcm
                     if (strpos($rows[$i], $needle) !== false) {
                         syslog(LOG_DEBUG, "founded needle:" . $needle);
                         syslog(LOG_DEBUG, "removed last line" . $rows[$i]);
-                        syslog(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
+
 
                         if (empty(trim($rows[($i + 1)]))) {
+                            syslog(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
                             unset($rows[($i + 1)]); //next line is empty
                         }
                         unset($rows[$i]);
@@ -445,6 +449,8 @@ class dcm
     {
         $helpers = new helpers();
         if (mb_strlen($raw_data) > 1) {
+
+            //$helpers->storage_insert_combine_delete($extraction);
             $extraction['csv_output'] .= $raw_data;
 
             $log_values = Array(

@@ -42,7 +42,7 @@ $now = new DateTime();
 $extraction['global']['google_sheet']['access_token'] = $helpers->get_access_token($client_id, $client_secret, $extraction['global']['google_sheet']['refresh_token']);
 $extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
 $extraction = $helpers->result_log($extraction, Array("Start Task {$extraction['file_name']}--------------------------------------"));
-syslog(LOG_DEBUG, 'Extraction:' . json_encode($extraction));
+//syslog(LOG_DEBUG, 'Extraction:' . json_encode($extraction));
 
 
 switch ($extraction['api_type']) {
@@ -65,6 +65,11 @@ switch ($extraction['api_type']) {
 
 switch ($extraction['api']) {
     case "adwords":
+
+        // create file with header
+        $extraction['csv_output'] = $extraction['metrics']."\n";
+        $helpers->create_csv_file($extraction);
+
         foreach ($extraction['accountsData'] as $key => $account) {
 
             $extraction['current'] = $account;
@@ -80,9 +85,9 @@ switch ($extraction['api']) {
                 $extraction['report'],
                 "START",
                 null);
-            syslog(LOG_DEBUG, json_encode($log_values));
             $extraction = $helpers->result_log($extraction, $log_values);
 
+            // Split by dates
             /*
             if (isset($extraction['split_day_period'])) {
                 $dates = split_dates($extraction['startDate'], $extraction['endDate']);
@@ -96,25 +101,16 @@ switch ($extraction['api']) {
                 $account_data = $adwords->set_adwords_request($extraction);
             }
             */
+
+            $extraction = $helpers->check_access_token($extraction);
             $account_data = $adwords->set_adwords_request($extraction);
 
-            $lines_counter = substr_count($account_data, "\n");
-            syslog(LOG_DEBUG, "lines_counter:" . $lines_counter);
-            syslog(LOG_DEBUG, "RESULT:" . $account_data);
-
-
-            // storage
-            if ($key === 0 && $lines_counter > 1) {
-                $extraction['csv_output'] .= $account_data;
+            if (mb_strlen($account_data) > 1 ) {
+                $extraction['csv_output'] = $account_data;
+                $helpers->storage_insert_combine_delete($extraction);
                 $result = "OK";
-            } else if ($key === 0 && $lines_counter < 2) {
-                $extraction['csv_output'] .= $account_data; // add header
-                $result = "EMPTY";
-            } else if ($lines_counter < 2) {
-                $result = "EMPTY";
             } else {
-                $extraction['csv_output'] .= $account_data;
-                $result = "OK";
+                $result = "EMPTY";
             }
 
             $log_values = Array(
@@ -128,12 +124,7 @@ switch ($extraction['api']) {
             syslog(LOG_DEBUG, json_encode($log_values));
             $extraction = $helpers->result_log($extraction, $log_values);
 
-
         }
-
-        $helpers->create_csv_file($extraction);
-        $bucket = $extraction['global']['storage_data']['bucket'];
-        syslog(LOG_DEBUG, "Saving CSV to bucket : $bucket filename: {$extraction['file_name']}");
 
         break;
 

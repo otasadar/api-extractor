@@ -40,7 +40,7 @@ class adwords
 
     }
 
-// Google Adwords API call (HTTP API request and AND conditions)
+    // Google Adwords API call (HTTP API request and AND conditions)
     function set_adwords_request($extraction)
     {
         $helpers = new helpers();
@@ -51,13 +51,14 @@ class adwords
         $endDate = $extraction['endDate'];
         $access_token = $extraction['access_token'];
         $developer_token = $extraction['global']['google']['developer_token'];
+        $skip_headers = 'true';
+        /*
         if ($extraction['current']['key'] === 0) {
-            $skip_headers = true;
+            $skip_headers = 'false';
         } else {
-            $skip_headers = false;
+            $skip_headers = 'true';
         }
-
-
+        */
 
         //Call headers
         $headers = array('contentType: application/x-www-form-urlencoded',
@@ -95,7 +96,7 @@ class adwords
         }
     }
 
-
+    // Split dates into smaller period dates
     function split_dates($start_date_str, $split_day_period) {
 
         $now = new DateTime();

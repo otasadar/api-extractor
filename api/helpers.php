@@ -5,7 +5,7 @@
  */
 class helpers
 {
-//  SET_APIS - INVOKE API FUNCTION TO LOAD THE ACCOUNTS LISTS
+    //  SET_APIS - INVOKE API FUNCTION TO LOAD THE ACCOUNTS LISTS
     function get_access_token($client_id, $client_secret, $refresh_token)
     {
 
@@ -55,44 +55,7 @@ class helpers
 
     }
 
-//  SET CURL ADWORDS - HELPER METHOD THAT ISSUES A CURL REQUEST
-/*
-    function set_curl_adwords($headers, $endpoint, $payload, $type, $extras, $extraction = null)
-    {
-
-        $curl = curl_init();
-
-        curl_setopt($curl, CURLOPT_URL, $endpoint);
-        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $type);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $payload);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 600);
-
-        if ($extras) {
-            foreach ($extras as $extra) {
-                curl_setopt($curl, $extra[0], $extra[1]);
-            }
-        }
-
-        $response = curl_exec($curl);
-        $info = curl_getinfo($curl);
-        curl_close($curl);
-
-
-        if ($response === false || $info['http_code'] != 200) {
-            syslog(LOG_DEBUG, "AdWords Curl Error " . $info['http_code']);
-            if ($extraction) {
-                status_log("AdWords Curl_Error" . $info['http_code'] . " accountId: {$extraction['current_accountId']} file_name: {$extraction['file_name']}");
-            }
-            return false;
-        } else {
-            return $this->handle_adwords_api_response($response, $extraction);
-        }
-    }
-*/
-
-//  SET CURL GENERAL - HELPER METHOD THAT ISSUES A CURL REQUEST
+    //  SET CURL GENERAL - HELPER METHOD THAT ISSUES A CURL REQUEST
     function set_curl($headers, $endpoint, $payload, $type, $extras = null)
     {
 
@@ -124,9 +87,9 @@ class helpers
             syslog(LOG_DEBUG, "simple curl after downlodad:" . mb_strlen($response));
             return $response;
         } else if ($response === false || $info['http_code'] != 200) {
-            syslog(LOG_DEBUG, "error curl :" . json_encode($info));
+            //syslog(LOG_DEBUG, "error curl :" . json_encode($info));
             syslog(LOG_DEBUG, "error curl :" . $endpoint);
-            syslog(LOG_DEBUG, "error curl :" . json_encode($headers));
+            //syslog(LOG_DEBUG, "error curl :" . json_encode($headers));
             syslog(LOG_DEBUG, "error curl :" . $response);
             syslog(LOG_DEBUG, "error curl :" . $type);
             return array($info['http_code'], $response);
@@ -135,6 +98,7 @@ class helpers
         }
     }
 
+    // Simple CURL for DCM URL extractions
     function set_simple_curl($url)
     {
         $ch = curl_init();
@@ -150,6 +114,7 @@ class helpers
         return $result;
     }
 
+    // Get file size with only URL and without downloading file, only using headers
     function get_curl_remote_file_size($url)
     {
         $ch = curl_init($url);
@@ -165,7 +130,7 @@ class helpers
         return $size;
     }
 
-//  SET CURL - CREATE AND UPDATE CSV FILE
+    // SET CURL - CREATE AND UPDATE CSV FILE
     function create_csv_file($extraction)
     {
 
@@ -200,18 +165,18 @@ class helpers
         }
     }
 
-//  SET CURL - GOOGLE CLOUD SESSION URL
+    // SET CURL - GOOGLE CLOUD SESSION URL
     function get_google_storage_session_url($extraction, $bucket, $access_token)
     {
-        //$file_name = urlencode (  "{$extraction['extraction_name']}/input/{$extraction['api']}/{$extraction['file_name']}");
-        $file_name = urlencode("{$extraction['file_name']}");
+        $file_path = "{$extraction['extraction_name']}/input/{$extraction['api']}/{$extraction['file_name']}";
+        //$file_path = "{$extraction['file_name']}";
 
         $headers = array('X-Upload-Content-Type: text/csv', 'Content-Type: application/json; charset=UTF-8', 'Authorization : Bearer ' . $access_token);
-        $endpoint = "https://www.googleapis.com/upload/storage/v1/b/$bucket/o?uploadType=resumable&predefinedAcl=publicRead&name=$file_name";
+        $endpoint = "https://www.googleapis.com/upload/storage/v1/b/$bucket/o?uploadType=resumable&predefinedAcl=publicRead&name=$file_path";
         $extras = array(array(CURLOPT_HEADER, 1));
         $payload = json_encode(['cacheControl' => 'public, max-age=0, no-transform']);
 
-        syslog(LOG_DEBUG, 'cloud storage ' . $endpoint);
+        syslog(LOG_DEBUG, 'Cloud storage: ' . $endpoint);
 
         //Cloud session URL
         $resumable_session_url = $this->set_curl($headers, $endpoint, $payload, 'POST', $extras);
@@ -234,7 +199,7 @@ class helpers
         }
     }
 
-// SET CURL - UPLOAD REPORT GOOGLE CLOUD
+    // SET CURL - UPLOAD REPORT GOOGLE CLOUD
     function upload_report_to_google_storage($resumable_session_url, $csv_string)
     {
 
@@ -248,7 +213,74 @@ class helpers
 
     }
 
-//  Get service access token - Function that returns an access token either from db as is not expired yet or straight from the api request
+    // Set temporal file, combine files and delete temporal
+    function storage_insert_combine_delete($extraction)
+    {
+
+        $extraction['file_name'] = str_replace('.csv', '_tmp.csv', $extraction['file_name']);
+
+        syslog(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
+        $this->create_csv_file($extraction);
+
+        $response = $this->combine_tmp_google_storage($extraction);
+        //syslog(LOG_DEBUG, 'Combine result : ' . $response);
+
+        if (!is_array($response)) {
+            $response = $this->delete_tmp_google_storage($extraction);
+
+            if (is_array($response)) {
+                if ($response[0] !== 204) {
+                    syslog(LOG_DEBUG, 'errro storage_insert_combine_delete');
+                }
+            }
+        }
+
+    }
+
+    // Combine storage  file
+    function combine_tmp_google_storage($extraction)
+    {
+
+        $tmp_file_name = $extraction['file_name'];
+        $file_name = str_replace('_tmp.csv', '.csv', $extraction['file_name']);
+
+        $file_path_encode = urlencode ("{$extraction['extraction_name']}/input/{$extraction['api']}/$file_name");
+        $file_path ="{$extraction['extraction_name']}/input/{$extraction['api']}/$file_name";
+        $tmp_file_path = "{$extraction['extraction_name']}/input/{$extraction['api']}/$tmp_file_name";
+
+
+        $bucket = $extraction['global']['storage_data']['bucket'];
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization: Bearer ' . $access_token,
+            'Accept: application/json',
+            'Content-Type: application/json');
+        $payload = '{"sourceObjects":[{"name":"' . $file_path . '"},{"name":"' . $tmp_file_path . '"}]}';
+        $endpoint = "https://www.googleapis.com/storage/v1/b/$bucket/o/$file_path_encode/compose";
+        $response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+
+        syslog(LOG_DEBUG, "combine:$response");
+
+        return $response;
+    }
+
+    // Delete temporal storage file
+    function delete_tmp_google_storage($extraction)
+    {
+        $tmp_file_name = $extraction['file_name'];
+        $tmp_file_path = urlencode ("{$extraction['extraction_name']}/input/{$extraction['api']}/$tmp_file_name");
+
+        syslog(LOG_DEBUG, "delete file : tmp_file_name:$tmp_file_path");
+
+        $bucket = $extraction['global']['storage_data']['bucket'];
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization: Bearer ' . $access_token,
+            'Accept: application/json');
+        $endpoint = "https://www.googleapis.com/storage/v1/b/$bucket/o/$tmp_file_path";
+        $response = $this->set_curl($headers, $endpoint, null, 'DELETE', null);
+        return $response;
+    }
+
+    //  Get service access token - Function that returns an access token either from db as is not expired yet or straight from the api request
     function get_storage_access_token($extraction)
     {
 
@@ -268,7 +300,7 @@ class helpers
         return $gcs_access_token;
     }
 
-//  Get service account access token - Function that returns an access token to make calls to google cloud storage
+    //  Get service account access token - Function that returns an access token to make calls to google cloud storage
     function get_service_account_access_token($client, $scope, $key)
     {
 
@@ -296,20 +328,20 @@ class helpers
 
     }
 
-// GET HTTP RESPONSE CODE - HELPER METHOD TO GET CODE FROM A GET REQUEST
+    // GET HTTP RESPONSE CODE - HELPER METHOD TO GET CODE FROM A GET REQUEST
     function get_http_response_code($endpoint)
     {
         $headers = get_headers($endpoint);
         return substr($headers[0], 9, 3);
     }
 
-// BASE 64 URL ENCODE - HELPER METHOD THAT ENCODES STRING TO BASE64
+    // BASE 64 URL ENCODE - HELPER METHOD THAT ENCODES STRING TO BASE64
     function base64_url_encode($input)
     {
         return str_replace('=', '', strtr(base64_encode($input), '+/', '-_'));
     }
 
-// return  if values exists
+    // return  if values exists
     function return_safe($var, $default = null)
     {
         if (isset($var) && isset($str)) {
@@ -319,11 +351,11 @@ class helpers
         }
     }
 
-    function return_isset(&$isset, $default = null) {
+    function return_isset(&$isset, $default = null){
         return isset($isset) ? $isset : $default;
     }
 
-// status log file - old version
+    // status log file - old version
     function status_log($data)
     {
         $file_path = "gs://api-jobs-files/status-stg-" . date('Y-m-d') . ".txt";
@@ -336,18 +368,23 @@ class helpers
         file_put_contents($file_path, $new_line . $historic_data);
     }
 
-// log using google sheet
+    // log using google sheet
     function result_log($extraction, $row)
     {
         $now = new DateTime();
-        array_unshift($row,  $now->format('d-m-Y'),  $now->format('H:i:s'));
+        array_unshift($row, $now->format('d-m-Y'), $now->format('H:i:s'));
         $extraction = $this->check_access_token($extraction, 'sheets');
-        $sheet_id = $extraction['global']['google_sheet']['tmp_sheet_id'];
+        $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
         $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);
         $endpoint = "https://content-sheets.googleapis.com/v4/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
         $payload = json_encode(array("values" => array($row)));// double array
         $result = $this->set_curl($headers, $endpoint, $payload, 'POST', null, $extraction);
-        //syslog(LOG_DEBUG, "sheets:" . $result);
+
+        // limit 'USER-100s' of service 'sheets.googleapis.com'
+        // num of task per 1 sec
+        $micro_seconds = (1000000 * $extraction['global']['items_counter']) + 100000;
+        usleep($micro_seconds);
         return $extraction;
     }
+
 }
