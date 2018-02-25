@@ -35,7 +35,7 @@ foreach ($extractions['items'] as $key => $extraction) {
     $extraction['global'] = $extractions['global'] ;
     $extraction['global']['items_counter'] = count($extractions['items']);
     $task_name = $extraction['api']."-".$extraction['task_name']."-".rand();
-    $task = new PushTask('/run-tasks?id='.$extraction['api']."-".$extraction['task_name'], ['extraction' => $extraction, 'extraction_id' => $key], ['name' => $task_name]);
+    $task = new PushTask('/run-tasks', ['extraction' => $extraction, 'extraction_id' => $key], ['name' => $task_name]);
     $task_name = $task->add($extractions['global']['queue']);
 
     echo "running task :$current of ".count($extractions['items'])." <br/>";

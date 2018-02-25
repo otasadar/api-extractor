@@ -21,11 +21,13 @@ use google\appengine\api\log\LogService;
 include __DIR__ . '/api/helpers.php';
 include __DIR__ . '/api/adwords.php';
 include __DIR__ . '/api/dcm.php';
+include __DIR__ . '/api/facebook.php';
 
 
 $helpers = new helpers();
 $adwords = new adwords();
 $dcm = new dcm();
+$facebook = new facebook();
 
 $extraction = $_POST['extraction'];
 $extraction['extraction_id'] = $_POST['extraction_id'];
@@ -64,6 +66,7 @@ switch ($extraction['api_type']) {
 }
 
 switch ($extraction['api']) {
+
     case "adwords":
 
         // create file with header
@@ -322,6 +325,75 @@ switch ($extraction['api']) {
         $bucket = $extraction['global']['storage_data']['bucket'];
         syslog(LOG_DEBUG, "Saving CSV to bucket : $bucket filename: {$extraction['file_name']}");
 
+        break;
+
+    case "facebook":
+
+        $extraction['csv_output'] = $extraction['header']."\n";
+        $helpers->create_csv_file($extraction);
+        $async_report_ids = [];
+        $async_account_ids = [];
+        $async_account_name = [];
+        $is_sync = true;
+
+        foreach ($extraction['accountsData'] as $key => $account) {
+
+            $extraction['current'] = $account;
+            $account_info = $facebook->set_facebook_request($extraction);
+            $account_data = $account_info[0];
+
+            if ($account_info[1]){
+                $is_sync = false;
+                array_push($async_report_ids, $account_info[1]);
+                array_push($async_account_ids, $extraction['current']['accountId']);
+                array_push($async_account_name, $extraction['current']['accountName']);
+
+            } else {
+                $is_sync = true;
+            }
+
+            if ($is_sync) {
+
+                $log_values = Array($extraction['api'], $extraction['task_name'], $extraction['current']['accountId'], $extraction['current']['accountName'], 'sync', "START", null);
+                $extraction = $helpers->result_log($extraction, $log_values);
+
+                if (mb_strlen($account_data) > 1 ) {
+                    $extraction['csv_output'] = $account_data;
+                    $helpers->storage_insert_combine_delete($extraction);
+                    $result = "OK";
+                } else {
+                    $result = "EMPTY";
+                }
+
+                $log_values = Array($extraction['api'], $extraction['task_name'], $extraction['current']['accountId'], $extraction['current']['accountName'], 'sync', $result, mb_strlen($account_data));
+                syslog(LOG_DEBUG, json_encode($log_values));
+                $extraction = $helpers->result_log($extraction, $log_values);
+            }
+        }
+
+        if (!empty($async_report_ids)) {
+
+            foreach ($async_report_ids as $key => $report_id) {
+
+                $extraction['current'] = array('accountId' => $async_account_ids[$key], 'accountName' => $async_account_name[$key]);
+                $log_values = Array($extraction['api'], $extraction['task_name'], $extraction['current']['accountId'], $extraction['current']['accountName'], 'async', "START", null);
+                $extraction = $helpers->result_log($extraction, $log_values);
+
+                $account_data = $facebook->set_async_facebook_request($extraction, $report_id);
+
+                if (mb_strlen($account_data) > 1 ) {
+                    $extraction['csv_output'] = $account_data;
+                    $helpers->storage_insert_combine_delete($extraction);
+                    $result = "OK";
+                } else {
+                    $result = "EMPTY";
+                }
+
+                $log_values = Array($extraction['api'], $extraction['task_name'], $extraction['current']['accountId'], $extraction['current']['accountName'], 'async', $result, mb_strlen($account_data));
+                syslog(LOG_DEBUG, json_encode($log_values));
+                $extraction = $helpers->result_log($extraction, $log_values);
+            }
+        }
         break;
 
     default:
