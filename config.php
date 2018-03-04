@@ -1,55 +1,127 @@
 <?php
 
-/*
- * Google Refresh token generator : https://developers.google.com/oauthplayground/
- *  - Check Use your own OAuth credentials  then Fill OAuth Client ID & OAuth Client secret:
- *  - Select API scopes
- *  - Authorizes and get refresh token
- *
- * AdWords API explorer : https://developers.google.com/adwords/api/docs/reference/v201705/ReportDefinitionService
- * AdWords Queries Tester : https://www.awql.me/adwords
- * DCM query report generator : https://developers.google.com/doubleclick-advertisers/v3.0/reports/insert
- */
-
-// General Variables
-date_default_timezone_set('Asia/Dubai');
-
-$extractions = [];
-$extractions['items'] = [];
-
-// Staging
-//$extractions['global']['queue'] = "api-extractor-staging";
-//$extractions['global']['storage_data']['bucket'] = "api-extractor-staging";
-//$extractions['global']['google_sheet']['sheet_id'] = '1oUslYYAHVtqTwqUSHsPXkXH4EDNC-JGiXPQQAiyrQc0';
-
-$extractions['global']['queue'] = "api-extractor";
-$extractions['global']['storage_data']['bucket'] = "annalect-dashboarding"; // copy to run.php too
-$extractions['global']['storage_data']['client'] = "annalect-api-jobs@annalect-api-jobs.iam.gserviceaccount.com";
-$extractions['global']['storage_data']['access_token'] = "ya29.c.ElwIBQ9QzuTBMDhi1oW74_ibk5T99f_g-kvJ5_fTuJOVK9Flr-Fk3aJWcyFPyYoQgTwnO6_DtMj_kzhUFBSezIJy120LplyFWrn6q1sinsDOmDo6BP5IrJqlO4fi5A";
-$extractions['global']['storage_data']['key'] = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC8XEBqrBmjW7mn\n8O+5k3DvnRxGsw1ZPPNVFEb3wOoYdmnxPQ0YInUVbm6axWwh2aMc6unB+yBSgKkF\nL+i/4R21m+xPUX84IApJRmYa1zFg4eqJU/XUZfvdKbXLNnVn7KlMhrTkoFp10ZFH\ngyt/0AfqE5GqX0sJ3rhwZxP5bmsWZnC0InEtVxlg/QvWc1OLyuLIyedU+gg9KAaG\nDJrx3aBGCbzxl5f+BLhdWeByx3JTouand2kQkuVQDAxClA0RfB7DPVfMRPgDV8sM\nXV08l5cOnXT6FCK9lNoMRHr1/s8kcrABJcBp04+9aPYzIwSsRU3amtnQLOjlLBm8\nCc9k/AnLAgMBAAECggEACeWg/tnfGP3DUgcvWWVdXEG5kB9tVqCEupYvqmnpAvMJ\n2wKVswxwcXlVd21jIp4wW18efDJJPvyCpQKg7KAT8wxnzL0f/Z91WudHiyZ+cjQ8\nog2Wz5uyMas04aIRZi4BsUMsswyX5DPoOcUzHmqcV9jCYRzTsQeSUlmgK415M/qD\n4vKKDebnH287+qJk1th+pg1aAUM1lJvXJGkDUAlKkWwEo+yRMVYdzz6TJHQiyD9B\nJbB9DsL0IInLHpxQxApl8e9bFV61IYfNlmo8GWrRR82EsbT+SantY4gHf1BP3vtv\nClJrGDZwKRjnZx4kCDmXKc5oMOB1cn4/nOe5WSjSTQKBgQDcI2KQGW07AQhRPGg+\nqoMNOX4UZjJCe1HanrAnOKbudBkBRA9lqp0jW5IYS9mt2RBgsM8Y1HhEUFmmyOHA\nukQtMk6dMq8h2mI8vJGjiEQeIB+TcwbINZJIokAud/M7LqNNnTE4oaYm2bnriayu\nkhDIYQylZIbzke5Y1YRVIGvKhwKBgQDbC5tW6m7w0vAgRodGAL1x+U8qRvjsw3pg\nXwqyBOyapXoTvcw2MuTNS4ADGpq1eGBjBsehb5XvW14d7WqHfcDPYXq3IE9vB1Ls\nATp+0D9/IVt13LfvGBIaD0AH/zr1N1IdYZRMtOuNIQMMl+B8qL+pnPmE4Ct0RPPs\nTirotoTDnQKBgQDQNrvL9fDFxUU7qPokg5yuznk9DChvjzqtoDiW8FOb6L2Z3+j8\nTTKRtdPqHRwH/e4qtjE7mAMlAia5xPkaFFPVt+Z5cu4JBAi0z9qkpYdgQxv6l+qL\nRXhWMPipuxSZHpShHZPnr6V6y6a5bJ+jAk7TaE/Qw9OM37Nj3Jhs99xcUwKBgCmf\nMfw4/a2rF0+6txeZKmZOzjklVUV/+2/2f0zGXMMh8Glx5iziTNGpqABu/LjAz+fh\nMOu/DUl3HhInu9dVEN8XEb9cV1usk5gev6O7JGWezAdAUn8PHtluzmb2m5he066b\njRdqRVwCytaIwXJOimTLXCpggkFMnODpFYQ0slONAoGBAIlolThayqWVasEdX0KR\ncmYV6h5KmT/trjhKpMlXz0bPvegZpF7XFbodKF+0eA1gV5MmnDEQy4epGhD0zRt3\noKyoM08zyFLqpKZqxl+5gTyqbEbzbT/tuo6rydad/01IbWlcRLaNpBfmsSCdEHO3\nTqeSqspjDoxfvQISvBAfHIzP\n-----END PRIVATE KEY-----\n";
-$extractions['global']['storage_data']['scope'] = 'https://www.googleapis.com/auth/devstorage.full_control https://www.googleapis.com/auth/devstorage.read_only https://www.googleapis.com/auth/devstorage.read_write https://www.googleapis.com/auth/cloud-taskqueue';
-
-$extractions['global']['google']['client_id'] = '1072155568501-rpcfah9qpkg9jro4c6c9sh62go6pm7oe.apps.googleusercontent.com';
-$extractions['global']['google']['client_secret'] = 'PAx5fz386w0groUL8JFgdVuQ';
-$extractions['global']['google']['developer_token'] = 'RPVuoNbWrFpSxE-UCabf9w';
-
-$extractions['global']['google_sheet']['refresh_token'] = '1/5Ex-mkYPcC96B8ycBWnNj_L1rtH46eTjE83PRIA_GadGpv_zXi070QcTmrGapWGf';
-$extractions['global']['google_sheet']['email_credential'] = 'analyticsuae@annalect.com';
-$extractions['global']['google_sheet']['sheet_id'] = '15917ONHrgyYmU49s_wvpjTguPXj9Dqbk5bhKMBNyMis';
-
-$extractions['global']['adwords']['today'] = date('Ymd'); // YYYYMMDD
-$extractions['global']['adwords']['yesterday'] = date("Ymd",  strtotime(date("Ymd", strtotime($extractions['global']['adwords']['today'])) . " -1 day") );
-$extractions['global']['adwords']['last_6months'] = date("Ymd",  strtotime(date("Ymd", strtotime($extractions['global']['adwords']['today'])) . " -6 month") );
-$extractions['global']['adwords']['historic'] = '20170601';
-
-$extractions['global']['dcm']['today'] = date('Y-m-d');; // 2018-01-24
-$extractions['global']['dcm']['yesterday'] = date("Y-m-d",  strtotime(date("Y-m-d", strtotime($extractions['global']['dcm']['today'] )) . " -1 day") );
-$extractions['global']['dcm']['last_6months'] = date("Y-m-d",  strtotime(date("Y-m-d", strtotime($extractions['global']['dcm']['today'] )) . " -6 month") );
-
-$extractions['global']['date']['today'] = date('Y-m-d'); // 2018-01-24
-$extractions['global']['date']['yesterday'] = date("Y-m-d",  strtotime(date("Y-m-d", strtotime($extractions['global']['date']['today'])) . " -1 day") );
+// Global settings at: global-config.php
 
 
+//Facebook
+
+$phd_accounts_data = array(
+    array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
+    array('accountId' => 'act_1691511334458362', 'accountName' => 'Al Futtaim - Honda'),
+    array('accountId' => 'act_1685815405027955', 'accountName' => 'Al Futtaim - Lexus'),
+    array('accountId' => 'act_1689700524639443', 'accountName' => 'Al Futtaim - Marks&Spencer'),
+    array('accountId' => 'act_1719623391647156', 'accountName' => 'Al Futtaim - Plug-ins'),
+    array('accountId' => 'act_2007085679567591', 'accountName' => 'Al Futtaim - RSH - BEBE'),
+    array('accountId' => 'act_1685815288361300', 'accountName' => 'Al Futtaim - Toyota'),
+    array('accountId' => 'act_1759281154348046', 'accountName' => 'Al Futtaim - Volvo'),
+    array('accountId' => 'act_2010564869219672', 'accountName' => 'Al Seef'),
+    array('accountId' => 'act_104340776371451', 'accountName' => 'Arla'),
+    array('accountId' => 'act_1976097485999744', 'accountName' => 'Arla - Lurpak'),
+    array('accountId' => 'act_1978768855732607', 'accountName' => 'Arla - Milk'),
+    array('accountId' => 'act_1976097752666384', 'accountName' => 'Arla - Puck'),
+    array('accountId' => 'act_1863127013963459', 'accountName' => 'Audi'),
+    array('accountId' => 'act_1801335130142648', 'accountName' => 'Bentley'),
+    array('accountId' => 'act_1689274798015349', 'accountName' => 'Dubai Festival City Mall'),
+    array('accountId' => 'act_2019131041696388', 'accountName' => 'DWTC - One Central'),
+    array('accountId' => 'act_1716584161951079', 'accountName' => 'DWTC - Weddings'),
+    array('accountId' => 'act_1922948561314637', 'accountName' => 'DWTC_The Majlis'),
+    array('accountId' => 'act_1875420992734061', 'accountName' => 'Ellington Properties'),
+    array('accountId' => 'act_1650527711890058', 'accountName' => 'Ferrero_Kinder Bueno'),
+    array('accountId' => 'act_1649131785362984', 'accountName' => 'Ferrero_Kinder Chocolate'),
+    array('accountId' => 'act_1650527108556785', 'accountName' => 'Ferrero_Kinder Joy'),
+    array('accountId' => 'act_1976608102615349', 'accountName' => 'Ferrero_Kinder Maxi'),
+    array('accountId' => 'act_1650529661889863', 'accountName' => 'Ferrero_Nutella'),
+    array('accountId' => 'act_1650529151889914', 'accountName' => 'Ferrero_Raffaello'),
+    array('accountId' => 'act_1650528348556661', 'accountName' => 'Ferrero_Rocher'),
+    array('accountId' => 'act_1650529738556522', 'accountName' => 'Ferrero_Tic Tac'),
+    array('accountId' => 'act_2007082989567860', 'accountName' => 'Galvin'),
+    array('accountId' => 'act_1918218688454291', 'accountName' => 'Guess Arabia'),
+    array('accountId' => 'act_1959626950980131', 'accountName' => 'Huawei'),
+    array('accountId' => 'act_2023821461227346', 'accountName' => 'La Mer'),
+    array('accountId' => 'act_2007583516184474', 'accountName' => 'Lacnor'),
+    array('accountId' => 'act_2007083252901167', 'accountName' => 'LIMA Dubai'),
+    array('accountId' => 'act_1918279855114841', 'accountName' => 'Louvre Abu Dhabi'),
+    array('accountId' => 'act_1747996932143135', 'accountName' => 'Mashreq Bank'),
+    array('accountId' => 'act_1973745786234914', 'accountName' => 'Mashreq NEO'),
+    array('accountId' => 'act_1944405305835629', 'accountName' => 'Meraas - Sizzling Summer'),
+    array('accountId' => 'act_1936352929974200', 'accountName' => 'Meraas_Boutique Le Chocolat'),
+    array('accountId' => 'act_1876283302647830', 'accountName' => 'Meraas_Box Park'),
+    array('accountId' => 'act_1857680897841404', 'accountName' => 'Meraas_City Walk'),
+    array('accountId' => 'act_1857633981179429', 'accountName' => 'Meraas_Corporate'),
+    array('accountId' => 'act_1857636447845849', 'accountName' => 'Meraas_Hub Zero'),
+    array('accountId' => 'act_1890956284513865', 'accountName' => 'Meraas_Kite Beach'),
+    array('accountId' => 'act_1890955514513942', 'accountName' => 'Meraas_Last Exit'),
+    array('accountId' => 'act_1870381146571379', 'accountName' => 'Meraas_Mattel Play Town'),
+    array('accountId' => 'act_1857637381179089', 'accountName' => 'Meraas_Qasr Al Sultan'),
+    array('accountId' => 'act_1711666839109478', 'accountName' => 'Meraas_Roxy Cinemas'),
+    array('accountId' => 'act_1875417559401071', 'accountName' => 'Meraas_The Beach'),
+    array('accountId' => 'act_1857635937845900', 'accountName' => 'Meraas_The Green Planet'),
+    array('accountId' => 'act_1857681107841383', 'accountName' => 'Meraas_The Outlet Village'),
+    array('accountId' => 'act_1887300398212787', 'accountName' => 'Meraas_The Void'),
+    array('accountId' => 'act_106116412871878', 'accountName' => 'Mubadala'),
+    array('accountId' => 'act_102700596551194', 'accountName' => 'PHD - SC Johnson - Glade'),
+    array('accountId' => 'act_1544976925778471', 'accountName' => 'Pizza Hut'),
+    array('accountId' => 'act_109777979167722', 'accountName' => 'Porsche'),
+    array('accountId' => 'act_109565799189228', 'accountName' => 'Power Horse'),
+    array('accountId' => 'act_1889966187946208', 'accountName' => 'Robinsons ME'),
+    array('accountId' => 'act_2033395200269972', 'accountName' => 'RSH - Maje'),
+    array('accountId' => 'act_2030535363889289', 'accountName' => 'RTA'),
+    array('accountId' => 'act_1649431668666329', 'accountName' => 'S C Johnson_Glade'),
+    array('accountId' => 'act_1649549568654539', 'accountName' => 'S C Johnson_Mr.Muscle'),
+    array('accountId' => 'act_1988435624765930', 'accountName' => 'St Ives'),
+    array('accountId' => 'act_109770175836307', 'accountName' => 'TDIC'),
+    array('accountId' => 'act_2006218239654335', 'accountName' => 'Toro + Ko'),
+    array('accountId' => 'act_1397709537183635', 'accountName' => 'Unilever_Algida'),
+    array('accountId' => 'act_1390263254596175', 'accountName' => 'Unilever_Axe Lynx Deo Aero'),
+    array('accountId' => 'act_1463239570617328', 'accountName' => 'Unilever_Careers'),
+    array('accountId' => 'act_261616170693081', 'accountName' => 'Unilever_Clear Shampoo'),
+    array('accountId' => 'act_1391797407775703', 'accountName' => 'Unilever_Close Up Whitening'),
+    array('accountId' => 'act_1376769389279580', 'accountName' => 'Unilever_Comfort Concentrate'),
+    array('accountId' => 'act_1500590916883739', 'accountName' => 'Unilever_Dove Deo'),
+    array('accountId' => 'act_250386531822011', 'accountName' => 'Unilever_Dove Hair'),
+    array('accountId' => 'act_1398604160428161', 'accountName' => 'Unilever_Dove Hand and Body'),
+    array('accountId' => 'act_1408623752760639', 'accountName' => 'Unilever_Dove Shower'),
+    array('accountId' => 'act_1424127171184184', 'accountName' => 'Unilever_FAL Face Wash'),
+    array('accountId' => 'act_1703050423304453', 'accountName' => 'Unilever_Jif'),
+    array('accountId' => 'act_1399752250312636', 'accountName' => 'Unilever_KNORR Range of Products'),
+    array('accountId' => 'act_1445663222348856', 'accountName' => 'Unilever_Lifebuoy '),
+    array('accountId' => 'act_1522622124616740', 'accountName' => 'Unilever_Lipton Black Tea'),
+    array('accountId' => 'act_1867827293493431', 'accountName' => 'Unilever_Lipton eCom Initiative'),
+    array('accountId' => 'act_1503247603227474', 'accountName' => 'Unilever_Lipton Green Tea Bags '),
+    array('accountId' => 'act_1390091797946417', 'accountName' => 'Unilever_Lipton Yellow Label Tea Bags'),
+    array('accountId' => 'act_292907114220666', 'accountName' => 'Unilever_Lux Shower Gel'),
+    array('accountId' => 'act_1484217765145691', 'accountName' => 'Unilever_Omo'),
+    array('accountId' => 'act_1928980794044747', 'accountName' => 'Unilever_Omo eCom Intitiative'),
+    array('accountId' => 'act_242870055906800', 'accountName' => 'Unilever_Ponds Cream'),
+    array('accountId' => 'act_1500034230212242', 'accountName' => 'Unilever_Rexona Range'),
+    array('accountId' => 'act_313747508779443', 'accountName' => 'Unilever_Signal Tooth Paste'),
+    array('accountId' => 'act_1392750687652037', 'accountName' => 'Unilever_Sunsilk Shampoo'),
+    array('accountId' => 'act_1607163106226519', 'accountName' => 'Unilever_Tresemme Bonus Impression'),
+    array('accountId' => 'act_1392644294357026', 'accountName' => 'Unilever_Tresemme Reg Rinse Out Cond'),
+    array('accountId' => 'act_244692472404837', 'accountName' => 'Unilever_Vaseline Body Lotion T'),
+    array('accountId' => 'act_1689594841316678', 'accountName' => 'Unilever_Zendium Toothpaste'),
+    array('accountId' => 'act_1494151217527709', 'accountName' => 'Virgin Atlantic'),
+    array('accountId' => 'act_1842459932696834', 'accountName' => 'Volkswagen')
+);
+
+
+//AIO Facebook PHD
+
+array_push($extractions['items'], array(
+    'api' => 'facebook',
+    'api_type' => 'facebook',
+    'extraction_name' => 'aio_phd',
+    'task_name' => 'aio_phd-facebook_all',
+    'file_name' => "facebook_all_2.csv",
+    'credential_email' => 'jpujolardevol@gmail.com',
+    'accountsData' => $phd_accounts_data,
+    'header' => 'campaign_name,campaign_id,reach,video_10_sec_watched_actions,adset_name,ad_name,frequency,clicks,spend,inline_post_engagement,actions,impressions,cost_per_action_type,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers,date_start,date_stop,publisher_platform',
+    'metrics' => 'campaign_name,campaign_id,reach,video_10_sec_watched_actions,adset_name,ad_name,frequency,clicks,spend,inline_post_engagement,actions,impressions,cost_per_action_type,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers',
+    'attribution_window' => "28d_view', '28d_click",
+    'breakdowns' => 'publisher_platform',
+    'startDate' => $extractions['global']['facebook']['historic'],
+    'endDate' => $extractions['global']['facebook']['yesterday']
+));
 
 
 //       _          _                                 _
@@ -249,36 +321,32 @@ $phd_accounts_data_search = array(
 );
 
 
-
-
-// Project [PHD - Ad]
-/*
+// AIO [PHD - Ad]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_ad',
-    'file_name' => "adwords_historical_phd_ad_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-adwords_ad',
+    'file_name' => "adwords_ad.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_sample,
+    'accountsData' => $phd_accounts_data_display,
     'report' => 'AD_PERFORMANCE_REPORT',
     'metrics' => 'Date,AccountDescriptiveName,CreativeFinalUrls,AdGroupName,AverageCpv,CampaignName,Clicks,Cost,Ctr,Headline,Impressions,VideoQuartile100Rate,VideoViews',
     'startDate' => $extractions['global']['adwords']['historic'],
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
-*/
 
-/*
-// Project [PHD - Campaign cmp Jun-Jul]
+
+// AIO [PHD - Cmp 1]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_cmp1',
-    'file_name' => "adwords_historical_phd_cmp1_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-adwords_cmp1',
+    'file_name' => "adwords_campaign1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -289,14 +357,14 @@ array_push($extractions['items'], array(
 ));
 
 
-// Project [PHD - Campaign cmp Ago-Sep]
+// AIO [PHD - Cmp 2]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_cmp2',
-    'file_name' => "adwords_historical_phd_cmp2_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-adwords_cmp2',
+    'file_name' => "adwords_campaign2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -307,14 +375,14 @@ array_push($extractions['items'], array(
 ));
 
 
-// Project [PHD - Campaign cmp Oct-Nov]
+// AIO [PHD - Cmp 3]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_cmp3',
-    'file_name' => "adwords_historical_phd_cmp3_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-phd_cmp3',
+    'file_name' => "adwords_campaign3.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -325,49 +393,49 @@ array_push($extractions['items'], array(
 ));
 
 
-// Project [PHD - Campaign cmp Dec-Ene]
+// AIO [PHD - Cmp 4]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_cmp4',
-    'file_name' => "adwords_historical_phd_cmp4_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-phd_cmp4',
+    'file_name' => "adwords_campaign4.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
     'report' => 'CAMPAIGN_PERFORMANCE_REPORT',
     'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
     'startDate' => '20171202',
-    'endDate' => $extractions['global']['adwords']['yesterday']
+    'endDate' => '20180201'
 ));
 
-// Project [PHD - Campaign cmp Feb-YESTERDAY]
+// AIO [PHD - Cmp 5]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_cmp5',
-    'file_name' => "adwords_historical_phd_cmp5_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-phd_cmp5',
+    'file_name' => "adwords_campaign5.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
     'report' => 'CAMPAIGN_PERFORMANCE_REPORT',
     'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => '20171202',
+    'startDate' => '20180202',
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
 
 
-// Project [PHD - Search 1]
+// AIO [PHD - Campaign 1]
 array_push($extractions['items'], array(
 
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_search_campaign_1',
-    'file_name' => "adwords_historical_phd_search_campaign_1_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-phd_campaign1',
+    'file_name' => "adwords_search1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_search,
@@ -377,13 +445,13 @@ array_push($extractions['items'], array(
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
 
-// Project [PHD - Search 2]
+// AIO [PHD - Campaign 2]
 array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'phd_search_campaign_2',
-    'file_name' => "adwords_historical_phd_search_campaign_2_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
+    'task_name' => 'aio_phd-phd_campaign2',
+    'file_name' => "adwords_search2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_search,
@@ -392,213 +460,6 @@ array_push($extractions['items'], array(
     'startDate' => $extractions['global']['adwords']['historic'],
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
-*/
-
-
-
-
-
-/*
-
-// AAC
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'aac',
-    'file_name' => "adwords_historical_aaac_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('156-469-0702','575-470-1972','606-092-7999','204-292-7012'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [Infiniti]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'infiniti',
-    'file_name' => "adwords_historical_infiniti_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('427-424-6315', '558-732-8768', '164-808-1409', '690-041-1221', '867-302-1843', '558-732-8768', '296-116-3862', '838-443-5660', '756-558-3856', '695-952-2231', '421-833-0827', '145-969-9760', '707-135-3207', '444-106-1264', '312-797-8811', '444-106-1264', '388-771-9605', '553-141-3280'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [Nissan]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'nissan',
-    'file_name' => "adwords_historical_nissan_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('520-736-9948', '666-680-9011', '328-503-0348', '406-860-1849', '535-372-6558', '404-064-4105', '290-524-8374', '625-250-1403', '389-428-7495'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project OMD - Ad]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'omd_ad',
-    'file_name' => "adwords_historical_omd_ad_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/v-rDuUwM3aZ9XP-Ewo0oa9IPglJ1YofIyGdSbcOdbQk',
-    'accounts' => array('780-635-5944', '162-952-1091', '111-215-5758', '745-321-0048', '180-145-7948', '219-875-3614', '115-791-8453', '867-302-1843', '520-736-9948', '666-680-9011', '838-443-5660', '661-235-1106', '682-672-4117', '434-678-1112', '156-469-0702', '694-030-1351', '800-931-6351', '684-449-5733', '727-204-6923', '495-801-9334', '178-870-1816', '655-720-0785', '690-041-1221', '695-952-2231', '253-214-5451', '516-330-0303', '145-969-9760', '260-997-7972', '576-978-8881', '189-557-4068', '678-464-4724', '160-634-1253', '444-106-1264', '932-389-4720', '781-094-1606', '328-503-0348', '604-396-7359', '846-573-8853', '261-913-8410', '518-011-7932', '663-370-8085', '183-194-6380', '213-554-6736', '575-470-1972', '244-067-0150', '482-187-8768', '388-771-9605', '535-372-6558', '719-629-9377', '917-036-3837', '880-766-7381', '386-512-6357', '333-027-8551', '406-860-1849', '830-836-7777', '137-613-4118', '429-021-2006', '841-444-7450', '910-403-5521', '290-524-8374', '642-636-7032', '594-301-8559', '405-951-6488', '425-282-5237', '806-807-9187', '404-064-4105', '344-862-9189', '699-547-2573', '117-910-6175', '606-092-7999', '899-428-3852', '633-686-7828', '931-357-7878', '726-663-1132', '999-786-1627', '996-943-7684', '986-367-8208', '985-170-2809', '984-621-2979', '983-359-1701', '981-754-2118', '979-382-4676', '978-595-2904', '977-557-5680', '976-323-2234', '974-833-3937', '972-358-1838', '965-527-3090', '963-656-9874', '957-782-9610', '957-390-2231', '953-849-8080', '951-646-0491', '950-353-6423', '934-623-4286', '934-120-3021', '933-021-2170', '932-190-5008', '929-627-8429', '928-476-0827', '928-442-7078', '927-223-9004', '925-724-4889', '917-630-8870', '909-755-7716', '909-064-2740', '908-634-2539', '907-954-2829', '907-300-9885', '905-214-8963', '900-428-3126', '899-926-3502', '895-674-3729', '895-170-2989', '891-128-6718', '889-452-8778', '888-579-9190', '885-937-0762', '885-061-7354', '884-983-1171', '884-246-8243', '881-506-2621', '880-032-9574', '877-413-7306', '872-511-8029', '869-991-2110', '864-868-5416', '860-881-3085', '858-646-5232', '855-527-7918', '852-344-6306', '850-614-8538', '848-320-3074', '842-227-9981', '840-501-0723', '839-605-3980', '835-791-0961', '829-951-4021', '828-691-7386', '807-288-2429', '806-510-4334', '804-784-1517', '803-830-1926', '802-526-6584', '800-830-2410', '796-889-8074', '796-131-7321', '789-731-6258', '785-654-5002', '781-104-3785', '776-961-4536', '774-856-0407', '773-392-7583', '768-158-3053', '765-155-1395', '764-524-0476', '760-220-3797', '758-671-4978', '757-220-4974', '756-558-3856', '756-511-3412', '756-171-1476', '753-593-3672', '753-041-4714', '751-833-0565', '751-176-1472', '750-448-9002', '749-320-5929', '741-443-6523', '740-899-6887', '739-899-1527', '728-359-2557', '724-448-6729', '722-755-8864', '720-616-7872', '718-237-8957', '718-031-7342', '717-847-2922', '711-343-1474', '710-129-0820', '707-167-9687', '707-135-3207', '703-464-9619', '700-472-2206', '699-671-4282', '686-066-4729', '680-265-3198', '680-144-0394', '676-465-7129', '672-876-9725', '672-751-2978', '671-865-1583', '668-788-2325', '664-369-3777', '660-249-0240', '653-195-5225', '646-634-0784', '632-781-5622', '627-166-0725', '626-258-9709', '625-250-1403', '621-502-7480', '616-529-1024', '613-630-0864', '601-577-1034', '600-317-8081', '598-518-2539', '598-133-0295', '593-331-8323', '592-133-4427', '588-377-4889', '584-153-2470', '583-821-4821', '574-286-7525', '573-885-7620', '562-685-7637', '562-599-5076', '558-732-8768', '553-141-3280', '548-613-9038', '547-307-0576', '542-167-6611', '538-138-9481', '531-765-8053', '527-721-1106', '526-543-0625', '518-428-8472', '515-467-8782', '514-400-3808', '508-223-7259', '506-770-3685', '506-501-1174', '500-378-7427', '497-781-7714', '489-547-2730', '487-855-7772', '485-605-7861', '484-713-9386', '481-278-7176', '478-969-9672', '478-777-3561', '474-498-9083', '474-007-6133', '466-937-6486', '460-153-1886', '455-083-3729', '454-693-9325', '452-540-5965', '451-489-4510', '442-775-9551', '435-289-3929', '434-745-1614', '434-198-0639', '431-634-3572', '430-234-3320', '427-424-6315', '425-013-9034', '424-632-5723', '421-833-0827', '421-267-4929', '416-509-4933', '415-998-8123', '414-742-8225', '413-862-6629', '413-655-1902', '413-331-0826', '405-698-9972', '403-958-4497', '401-512-8427', '398-119-3823', '396-412-8653', '395-268-8472', '392-323-1025', '391-321-0227', '389-428-7495', '381-344-0085', '381-253-8576', '379-400-8629', '378-907-8530', '378-135-5304', '378-042-7571', '375-733-0472', '375-213-4940', '373-455-2329', '369-937-3177', '368-966-0024', '368-898-3994', '368-727-6669', '356-739-8806', '356-594-7426', '342-818-4382', '342-507-7527', '341-417-9510', '340-087-9008', '338-822-7589', '336-931-5485', '336-152-7340', '330-875-6427', '329-466-0837', '323-629-7725', '322-805-5252', '322-468-0035', '322-385-5304', '321-669-4553', '320-979-9435', '319-781-9969', '315-963-0823', '314-752-3059', '313-304-7178', '312-797-8811', '309-362-6621', '297-754-9285', '296-991-1927', '296-116-3862', '292-521-3327', '287-364-8174', '280-774-5976', '274-509-3041', '273-046-2423', '266-301-8925', '264-521-2323', '261-762-6373', '258-725-4878', '255-446-8521', '251-556-1478', '251-142-3688', '245-955-6973', '241-637-7376', '239-281-9088', '237-648-5880', '235-936-0178', '235-137-1827', '235-043-0837', '231-709-7881', '229-415-3190', '227-351-7600', '225-943-2863', '225-915-5629', '225-528-9570', '223-380-5121', '215-611-0343', '214-750-8125', '207-500-6878', '204-292-7012', '204-069-9727', '203-109-9021', '201-045-0724', '200-631-2176', '199-526-0678', '198-702-2360', '192-988-9023', '185-575-4885', '184-043-2679', '183-969-0314', '182-989-1621', '182-658-8995', '179-653-2326', '173-621-3385', '173-408-8529', '170-902-5708', '170-706-2380', '167-988-9616', '166-254-3425', '164-808-1409', '161-924-6271', '160-692-0029', '156-449-4188', '153-799-6576', '151-413-2904', '138-857-4025', '138-815-0221', '138-026-9837', '135-986-4041', '135-496-2827', '132-816-6327', '123-811-5774', '123-437-4321', '119-039-3025', '118-692-0962', '117-659-8877', '117-111-2974', '116-167-8846', '112-690-3425', '112-501-2988', '111-644-2872', '106-024-1110', '104-224-6026', '102-960-5140', '102-725-9525', '100-664-8978', '462-247-5479', '832-081-6061', '385-378-8385', '153-759-9516', '557-798-2924', '663-700-4828', '218-306-8481', '880-439-6234', '885-695-1363', '177-600-7777', '591-650-6832', '838-666-2067', '239-434-9322', '369-918-9710', '967-825-7970', '496-628-4924', '890-301-5775', '335-636-2214', '193-692-4285', '945-964-0620', '183-023-0430', '846-646-2453', '705-832-4806', '295-594-5055', '401-441-3474', '161-882-1774', '169-416-4018', '259-418-0567', '340-319-3304', '344-841-3865', '274-751-4351', '536-670-2083', '995-901-7117', '952-970-4083', '926-253-6124', '855-687-0485', '774-537-4330', '766-257-0521', '738-598-5278', '732-597-2231', '624-247-7208', '618-997-2208', '602-387-3923', '588-492-7996', '531-727-2179', '477-058-0716', '426-445-4738', '367-575-4312', '345-732-4021', '267-899-7423', '225-874-2208', '209-262-7359', '169-439-3832', '156-883-1076', '106-259-5780', '105-693-4772', '946-461-1508', '666-436-7590', '124-076-8529', '933-499-8956', '826-940-9162', '802-191-6503', '547-588-0034', '659-350-3481', '493-941-8950', '472-133-6818', '444-518-8301', '272-756-1652', '200-740-5044', '159-216-5921', '126-155-4699', '619-597-8271', '253-530-5462', '735-338-1285', '903-016-4232', '769-217-8555', '592-750-6240', '404-009-3251', '242-546-5681', '629-082-1618', '678-257-3414', '272-411-2228', '353-311-3534', '314-254-6873', '861-291-2455', '126-322-3361', '719-344-0753', '712-698-8987', '450-107-0904', '594-291-4329', '587-080-9489', '426-828-1085', '454-665-9612', '237-330-3465', '923-782-1605', '335-879-2634', '331-840-2227', '462-071-4508', '348-033-6783'),
-    'report' => 'AD_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CreativeFinalUrls,AdGroupName,AverageCpv,CampaignName,Clicks,Cost,Ctr,Headline,Impressions,VideoQuartile100Rate,VideoViews',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [OMD - Campaign]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'omd_campaign',
-    'file_name' => "adwords_historical_omd_campaign_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/v-rDuUwM3aZ9XP-Ewo0oa9IPglJ1YofIyGdSbcOdbQk',
-    'accounts' => array('780-635-5944', '162-952-1091', '111-215-5758', '745-321-0048', '180-145-7948', '219-875-3614', '115-791-8453', '867-302-1843', '520-736-9948', '666-680-9011', '838-443-5660', '661-235-1106', '682-672-4117', '434-678-1112', '156-469-0702', '694-030-1351', '800-931-6351', '684-449-5733', '727-204-6923', '495-801-9334', '178-870-1816', '655-720-0785', '690-041-1221', '695-952-2231', '253-214-5451', '516-330-0303', '145-969-9760', '260-997-7972', '576-978-8881', '189-557-4068', '678-464-4724', '160-634-1253', '444-106-1264', '932-389-4720', '781-094-1606', '328-503-0348', '604-396-7359', '846-573-8853', '261-913-8410', '518-011-7932', '663-370-8085', '183-194-6380', '213-554-6736', '575-470-1972', '244-067-0150', '482-187-8768', '388-771-9605', '535-372-6558', '719-629-9377', '917-036-3837', '880-766-7381', '386-512-6357', '333-027-8551', '406-860-1849', '830-836-7777', '137-613-4118', '429-021-2006', '841-444-7450', '910-403-5521', '290-524-8374', '642-636-7032', '594-301-8559', '405-951-6488', '425-282-5237', '806-807-9187', '404-064-4105', '344-862-9189', '699-547-2573', '117-910-6175', '606-092-7999', '899-428-3852', '633-686-7828', '931-357-7878', '726-663-1132', '999-786-1627', '996-943-7684', '986-367-8208', '985-170-2809', '984-621-2979', '983-359-1701', '981-754-2118', '979-382-4676', '978-595-2904', '977-557-5680', '976-323-2234', '974-833-3937', '972-358-1838', '965-527-3090', '963-656-9874', '957-782-9610', '957-390-2231', '953-849-8080', '951-646-0491', '950-353-6423', '934-623-4286', '934-120-3021', '933-021-2170', '932-190-5008', '929-627-8429', '928-476-0827', '928-442-7078', '927-223-9004', '925-724-4889', '917-630-8870', '909-755-7716', '909-064-2740', '908-634-2539', '907-954-2829', '907-300-9885', '905-214-8963', '900-428-3126', '899-926-3502', '895-674-3729', '895-170-2989', '891-128-6718', '889-452-8778', '888-579-9190', '885-937-0762', '885-061-7354', '884-983-1171', '884-246-8243', '881-506-2621', '880-032-9574', '877-413-7306', '872-511-8029', '869-991-2110', '864-868-5416', '860-881-3085', '858-646-5232', '855-527-7918', '852-344-6306', '850-614-8538', '848-320-3074', '842-227-9981', '840-501-0723', '839-605-3980', '835-791-0961', '829-951-4021', '828-691-7386', '807-288-2429', '806-510-4334', '804-784-1517', '803-830-1926', '802-526-6584', '800-830-2410', '796-889-8074', '796-131-7321', '789-731-6258', '785-654-5002', '781-104-3785', '776-961-4536', '774-856-0407', '773-392-7583', '768-158-3053', '765-155-1395', '764-524-0476', '760-220-3797', '758-671-4978', '757-220-4974', '756-558-3856', '756-511-3412', '756-171-1476', '753-593-3672', '753-041-4714', '751-833-0565', '751-176-1472', '750-448-9002', '749-320-5929', '741-443-6523', '740-899-6887', '739-899-1527', '728-359-2557', '724-448-6729', '722-755-8864', '720-616-7872', '718-237-8957', '718-031-7342', '717-847-2922', '711-343-1474', '710-129-0820', '707-167-9687', '707-135-3207', '703-464-9619', '700-472-2206', '699-671-4282', '686-066-4729', '680-265-3198', '680-144-0394', '676-465-7129', '672-876-9725', '672-751-2978', '671-865-1583', '668-788-2325', '664-369-3777', '660-249-0240', '653-195-5225', '646-634-0784', '632-781-5622', '627-166-0725', '626-258-9709', '625-250-1403', '621-502-7480', '616-529-1024', '613-630-0864', '601-577-1034', '600-317-8081', '598-518-2539', '598-133-0295', '593-331-8323', '592-133-4427', '588-377-4889', '584-153-2470', '583-821-4821', '574-286-7525', '573-885-7620', '562-685-7637', '562-599-5076', '558-732-8768', '553-141-3280', '548-613-9038', '547-307-0576', '542-167-6611', '538-138-9481', '531-765-8053', '527-721-1106', '526-543-0625', '518-428-8472', '515-467-8782', '514-400-3808', '508-223-7259', '506-770-3685', '506-501-1174', '500-378-7427', '497-781-7714', '489-547-2730', '487-855-7772', '485-605-7861', '484-713-9386', '481-278-7176', '478-969-9672', '478-777-3561', '474-498-9083', '474-007-6133', '466-937-6486', '460-153-1886', '455-083-3729', '454-693-9325', '452-540-5965', '451-489-4510', '442-775-9551', '435-289-3929', '434-745-1614', '434-198-0639', '431-634-3572', '430-234-3320', '427-424-6315', '425-013-9034', '424-632-5723', '421-833-0827', '421-267-4929', '416-509-4933', '415-998-8123', '414-742-8225', '413-862-6629', '413-655-1902', '413-331-0826', '405-698-9972', '403-958-4497', '401-512-8427', '398-119-3823', '396-412-8653', '395-268-8472', '392-323-1025', '391-321-0227', '389-428-7495', '381-344-0085', '381-253-8576', '379-400-8629', '378-907-8530', '378-135-5304', '378-042-7571', '375-733-0472', '375-213-4940', '373-455-2329', '369-937-3177', '368-966-0024', '368-898-3994', '368-727-6669', '356-739-8806', '356-594-7426', '342-818-4382', '342-507-7527', '341-417-9510', '340-087-9008', '338-822-7589', '336-931-5485', '336-152-7340', '330-875-6427', '329-466-0837', '323-629-7725', '322-805-5252', '322-468-0035', '322-385-5304', '321-669-4553', '320-979-9435', '319-781-9969', '315-963-0823', '314-752-3059', '313-304-7178', '312-797-8811', '309-362-6621', '297-754-9285', '296-991-1927', '296-116-3862', '292-521-3327', '287-364-8174', '280-774-5976', '274-509-3041', '273-046-2423', '266-301-8925', '264-521-2323', '261-762-6373', '258-725-4878', '255-446-8521', '251-556-1478', '251-142-3688', '245-955-6973', '241-637-7376', '239-281-9088', '237-648-5880', '235-936-0178', '235-137-1827', '235-043-0837', '231-709-7881', '229-415-3190', '227-351-7600', '225-943-2863', '225-915-5629', '225-528-9570', '223-380-5121', '215-611-0343', '214-750-8125', '207-500-6878', '204-292-7012', '204-069-9727', '203-109-9021', '201-045-0724', '200-631-2176', '199-526-0678', '198-702-2360', '192-988-9023', '185-575-4885', '184-043-2679', '183-969-0314', '182-989-1621', '182-658-8995', '179-653-2326', '173-621-3385', '173-408-8529', '170-902-5708', '170-706-2380', '167-988-9616', '166-254-3425', '164-808-1409', '161-924-6271', '160-692-0029', '156-449-4188', '153-799-6576', '151-413-2904', '138-857-4025', '138-815-0221', '138-026-9837', '135-986-4041', '135-496-2827', '132-816-6327', '123-811-5774', '123-437-4321', '119-039-3025', '118-692-0962', '117-659-8877', '117-111-2974', '116-167-8846', '112-690-3425', '112-501-2988', '111-644-2872', '106-024-1110', '104-224-6026', '102-960-5140', '102-725-9525', '100-664-8978', '462-247-5479', '832-081-6061', '385-378-8385', '153-759-9516', '557-798-2924', '663-700-4828', '218-306-8481', '880-439-6234', '885-695-1363', '177-600-7777', '591-650-6832', '838-666-2067', '239-434-9322', '369-918-9710', '967-825-7970', '496-628-4924', '890-301-5775', '335-636-2214', '193-692-4285', '945-964-0620', '183-023-0430', '846-646-2453', '705-832-4806', '295-594-5055', '401-441-3474', '161-882-1774', '169-416-4018', '259-418-0567', '340-319-3304', '344-841-3865', '274-751-4351', '536-670-2083', '995-901-7117', '952-970-4083', '926-253-6124', '855-687-0485', '774-537-4330', '766-257-0521', '738-598-5278', '732-597-2231', '624-247-7208', '618-997-2208', '602-387-3923', '588-492-7996', '531-727-2179', '477-058-0716', '426-445-4738', '367-575-4312', '345-732-4021', '267-899-7423', '225-874-2208', '209-262-7359', '169-439-3832', '156-883-1076', '106-259-5780', '105-693-4772', '946-461-1508', '666-436-7590', '124-076-8529', '933-499-8956', '826-940-9162', '802-191-6503', '547-588-0034', '659-350-3481', '493-941-8950', '472-133-6818', '444-518-8301', '272-756-1652', '200-740-5044', '159-216-5921', '126-155-4699', '619-597-8271', '253-530-5462', '735-338-1285', '903-016-4232', '769-217-8555', '592-750-6240', '404-009-3251', '242-546-5681', '629-082-1618', '678-257-3414', '272-411-2228', '353-311-3534', '314-254-6873', '861-291-2455', '126-322-3361', '719-344-0753', '712-698-8987', '450-107-0904', '594-291-4329', '587-080-9489', '426-828-1085', '454-665-9612', '237-330-3465', '923-782-1605', '335-879-2634', '331-840-2227', '462-071-4508', '348-033-6783'),
-    'report' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-
-
-
-
-// AAC
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'aac',
-    'file_name' => "adwords_historical_aaac_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('156-469-0702','575-470-1972','606-092-7999','204-292-7012'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [Infiniti]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'infiniti',
-    'file_name' => "adwords_historical_infiniti_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('427-424-6315', '558-732-8768', '164-808-1409', '690-041-1221', '867-302-1843', '558-732-8768', '296-116-3862', '838-443-5660', '756-558-3856', '695-952-2231', '421-833-0827', '145-969-9760', '707-135-3207', '444-106-1264', '312-797-8811', '444-106-1264', '388-771-9605', '553-141-3280'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [Nissan]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'nissan',
-    'file_name' => "adwords_historical_nissan_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/Fb-kcD0UFz63kdX2fg9tTPN3QR0izXPm0Tdkvvv_KOw',
-    'accounts' => array('520-736-9948', '666-680-9011', '328-503-0348', '406-860-1849', '535-372-6558', '404-064-4105', '290-524-8374', '625-250-1403', '389-428-7495'),
-    'report' => 'KEYWORDS_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,Criteria,KeywordMatchType,ClickType,Clicks,Impressions,Cost,Conversions',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project OMD - Ad]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'omd_ad',
-    'file_name' => "adwords_historical_omd_ad_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/v-rDuUwM3aZ9XP-Ewo0oa9IPglJ1YofIyGdSbcOdbQk',
-    'accounts' => array('780-635-5944', '162-952-1091', '111-215-5758', '745-321-0048', '180-145-7948', '219-875-3614', '115-791-8453', '867-302-1843', '520-736-9948', '666-680-9011', '838-443-5660', '661-235-1106', '682-672-4117', '434-678-1112', '156-469-0702', '694-030-1351', '800-931-6351', '684-449-5733', '727-204-6923', '495-801-9334', '178-870-1816', '655-720-0785', '690-041-1221', '695-952-2231', '253-214-5451', '516-330-0303', '145-969-9760', '260-997-7972', '576-978-8881', '189-557-4068', '678-464-4724', '160-634-1253', '444-106-1264', '932-389-4720', '781-094-1606', '328-503-0348', '604-396-7359', '846-573-8853', '261-913-8410', '518-011-7932', '663-370-8085', '183-194-6380', '213-554-6736', '575-470-1972', '244-067-0150', '482-187-8768', '388-771-9605', '535-372-6558', '719-629-9377', '917-036-3837', '880-766-7381', '386-512-6357', '333-027-8551', '406-860-1849', '830-836-7777', '137-613-4118', '429-021-2006', '841-444-7450', '910-403-5521', '290-524-8374', '642-636-7032', '594-301-8559', '405-951-6488', '425-282-5237', '806-807-9187', '404-064-4105', '344-862-9189', '699-547-2573', '117-910-6175', '606-092-7999', '899-428-3852', '633-686-7828', '931-357-7878', '726-663-1132', '999-786-1627', '996-943-7684', '986-367-8208', '985-170-2809', '984-621-2979', '983-359-1701', '981-754-2118', '979-382-4676', '978-595-2904', '977-557-5680', '976-323-2234', '974-833-3937', '972-358-1838', '965-527-3090', '963-656-9874', '957-782-9610', '957-390-2231', '953-849-8080', '951-646-0491', '950-353-6423', '934-623-4286', '934-120-3021', '933-021-2170', '932-190-5008', '929-627-8429', '928-476-0827', '928-442-7078', '927-223-9004', '925-724-4889', '917-630-8870', '909-755-7716', '909-064-2740', '908-634-2539', '907-954-2829', '907-300-9885', '905-214-8963', '900-428-3126', '899-926-3502', '895-674-3729', '895-170-2989', '891-128-6718', '889-452-8778', '888-579-9190', '885-937-0762', '885-061-7354', '884-983-1171', '884-246-8243', '881-506-2621', '880-032-9574', '877-413-7306', '872-511-8029', '869-991-2110', '864-868-5416', '860-881-3085', '858-646-5232', '855-527-7918', '852-344-6306', '850-614-8538', '848-320-3074', '842-227-9981', '840-501-0723', '839-605-3980', '835-791-0961', '829-951-4021', '828-691-7386', '807-288-2429', '806-510-4334', '804-784-1517', '803-830-1926', '802-526-6584', '800-830-2410', '796-889-8074', '796-131-7321', '789-731-6258', '785-654-5002', '781-104-3785', '776-961-4536', '774-856-0407', '773-392-7583', '768-158-3053', '765-155-1395', '764-524-0476', '760-220-3797', '758-671-4978', '757-220-4974', '756-558-3856', '756-511-3412', '756-171-1476', '753-593-3672', '753-041-4714', '751-833-0565', '751-176-1472', '750-448-9002', '749-320-5929', '741-443-6523', '740-899-6887', '739-899-1527', '728-359-2557', '724-448-6729', '722-755-8864', '720-616-7872', '718-237-8957', '718-031-7342', '717-847-2922', '711-343-1474', '710-129-0820', '707-167-9687', '707-135-3207', '703-464-9619', '700-472-2206', '699-671-4282', '686-066-4729', '680-265-3198', '680-144-0394', '676-465-7129', '672-876-9725', '672-751-2978', '671-865-1583', '668-788-2325', '664-369-3777', '660-249-0240', '653-195-5225', '646-634-0784', '632-781-5622', '627-166-0725', '626-258-9709', '625-250-1403', '621-502-7480', '616-529-1024', '613-630-0864', '601-577-1034', '600-317-8081', '598-518-2539', '598-133-0295', '593-331-8323', '592-133-4427', '588-377-4889', '584-153-2470', '583-821-4821', '574-286-7525', '573-885-7620', '562-685-7637', '562-599-5076', '558-732-8768', '553-141-3280', '548-613-9038', '547-307-0576', '542-167-6611', '538-138-9481', '531-765-8053', '527-721-1106', '526-543-0625', '518-428-8472', '515-467-8782', '514-400-3808', '508-223-7259', '506-770-3685', '506-501-1174', '500-378-7427', '497-781-7714', '489-547-2730', '487-855-7772', '485-605-7861', '484-713-9386', '481-278-7176', '478-969-9672', '478-777-3561', '474-498-9083', '474-007-6133', '466-937-6486', '460-153-1886', '455-083-3729', '454-693-9325', '452-540-5965', '451-489-4510', '442-775-9551', '435-289-3929', '434-745-1614', '434-198-0639', '431-634-3572', '430-234-3320', '427-424-6315', '425-013-9034', '424-632-5723', '421-833-0827', '421-267-4929', '416-509-4933', '415-998-8123', '414-742-8225', '413-862-6629', '413-655-1902', '413-331-0826', '405-698-9972', '403-958-4497', '401-512-8427', '398-119-3823', '396-412-8653', '395-268-8472', '392-323-1025', '391-321-0227', '389-428-7495', '381-344-0085', '381-253-8576', '379-400-8629', '378-907-8530', '378-135-5304', '378-042-7571', '375-733-0472', '375-213-4940', '373-455-2329', '369-937-3177', '368-966-0024', '368-898-3994', '368-727-6669', '356-739-8806', '356-594-7426', '342-818-4382', '342-507-7527', '341-417-9510', '340-087-9008', '338-822-7589', '336-931-5485', '336-152-7340', '330-875-6427', '329-466-0837', '323-629-7725', '322-805-5252', '322-468-0035', '322-385-5304', '321-669-4553', '320-979-9435', '319-781-9969', '315-963-0823', '314-752-3059', '313-304-7178', '312-797-8811', '309-362-6621', '297-754-9285', '296-991-1927', '296-116-3862', '292-521-3327', '287-364-8174', '280-774-5976', '274-509-3041', '273-046-2423', '266-301-8925', '264-521-2323', '261-762-6373', '258-725-4878', '255-446-8521', '251-556-1478', '251-142-3688', '245-955-6973', '241-637-7376', '239-281-9088', '237-648-5880', '235-936-0178', '235-137-1827', '235-043-0837', '231-709-7881', '229-415-3190', '227-351-7600', '225-943-2863', '225-915-5629', '225-528-9570', '223-380-5121', '215-611-0343', '214-750-8125', '207-500-6878', '204-292-7012', '204-069-9727', '203-109-9021', '201-045-0724', '200-631-2176', '199-526-0678', '198-702-2360', '192-988-9023', '185-575-4885', '184-043-2679', '183-969-0314', '182-989-1621', '182-658-8995', '179-653-2326', '173-621-3385', '173-408-8529', '170-902-5708', '170-706-2380', '167-988-9616', '166-254-3425', '164-808-1409', '161-924-6271', '160-692-0029', '156-449-4188', '153-799-6576', '151-413-2904', '138-857-4025', '138-815-0221', '138-026-9837', '135-986-4041', '135-496-2827', '132-816-6327', '123-811-5774', '123-437-4321', '119-039-3025', '118-692-0962', '117-659-8877', '117-111-2974', '116-167-8846', '112-690-3425', '112-501-2988', '111-644-2872', '106-024-1110', '104-224-6026', '102-960-5140', '102-725-9525', '100-664-8978', '462-247-5479', '832-081-6061', '385-378-8385', '153-759-9516', '557-798-2924', '663-700-4828', '218-306-8481', '880-439-6234', '885-695-1363', '177-600-7777', '591-650-6832', '838-666-2067', '239-434-9322', '369-918-9710', '967-825-7970', '496-628-4924', '890-301-5775', '335-636-2214', '193-692-4285', '945-964-0620', '183-023-0430', '846-646-2453', '705-832-4806', '295-594-5055', '401-441-3474', '161-882-1774', '169-416-4018', '259-418-0567', '340-319-3304', '344-841-3865', '274-751-4351', '536-670-2083', '995-901-7117', '952-970-4083', '926-253-6124', '855-687-0485', '774-537-4330', '766-257-0521', '738-598-5278', '732-597-2231', '624-247-7208', '618-997-2208', '602-387-3923', '588-492-7996', '531-727-2179', '477-058-0716', '426-445-4738', '367-575-4312', '345-732-4021', '267-899-7423', '225-874-2208', '209-262-7359', '169-439-3832', '156-883-1076', '106-259-5780', '105-693-4772', '946-461-1508', '666-436-7590', '124-076-8529', '933-499-8956', '826-940-9162', '802-191-6503', '547-588-0034', '659-350-3481', '493-941-8950', '472-133-6818', '444-518-8301', '272-756-1652', '200-740-5044', '159-216-5921', '126-155-4699', '619-597-8271', '253-530-5462', '735-338-1285', '903-016-4232', '769-217-8555', '592-750-6240', '404-009-3251', '242-546-5681', '629-082-1618', '678-257-3414', '272-411-2228', '353-311-3534', '314-254-6873', '861-291-2455', '126-322-3361', '719-344-0753', '712-698-8987', '450-107-0904', '594-291-4329', '587-080-9489', '426-828-1085', '454-665-9612', '237-330-3465', '923-782-1605', '335-879-2634', '331-840-2227', '462-071-4508', '348-033-6783'),
-    'report' => 'AD_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CreativeFinalUrls,AdGroupName,AverageCpv,CampaignName,Clicks,Cost,Ctr,Headline,Impressions,VideoQuartile100Rate,VideoViews',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [OMD - Campaign]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'omd_campaign',
-    'file_name' => "adwords_historical_omd_campaign_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/v-rDuUwM3aZ9XP-Ewo0oa9IPglJ1YofIyGdSbcOdbQk',
-    'accounts' => array('780-635-5944', '162-952-1091', '111-215-5758', '745-321-0048', '180-145-7948', '219-875-3614', '115-791-8453', '867-302-1843', '520-736-9948', '666-680-9011', '838-443-5660', '661-235-1106', '682-672-4117', '434-678-1112', '156-469-0702', '694-030-1351', '800-931-6351', '684-449-5733', '727-204-6923', '495-801-9334', '178-870-1816', '655-720-0785', '690-041-1221', '695-952-2231', '253-214-5451', '516-330-0303', '145-969-9760', '260-997-7972', '576-978-8881', '189-557-4068', '678-464-4724', '160-634-1253', '444-106-1264', '932-389-4720', '781-094-1606', '328-503-0348', '604-396-7359', '846-573-8853', '261-913-8410', '518-011-7932', '663-370-8085', '183-194-6380', '213-554-6736', '575-470-1972', '244-067-0150', '482-187-8768', '388-771-9605', '535-372-6558', '719-629-9377', '917-036-3837', '880-766-7381', '386-512-6357', '333-027-8551', '406-860-1849', '830-836-7777', '137-613-4118', '429-021-2006', '841-444-7450', '910-403-5521', '290-524-8374', '642-636-7032', '594-301-8559', '405-951-6488', '425-282-5237', '806-807-9187', '404-064-4105', '344-862-9189', '699-547-2573', '117-910-6175', '606-092-7999', '899-428-3852', '633-686-7828', '931-357-7878', '726-663-1132', '999-786-1627', '996-943-7684', '986-367-8208', '985-170-2809', '984-621-2979', '983-359-1701', '981-754-2118', '979-382-4676', '978-595-2904', '977-557-5680', '976-323-2234', '974-833-3937', '972-358-1838', '965-527-3090', '963-656-9874', '957-782-9610', '957-390-2231', '953-849-8080', '951-646-0491', '950-353-6423', '934-623-4286', '934-120-3021', '933-021-2170', '932-190-5008', '929-627-8429', '928-476-0827', '928-442-7078', '927-223-9004', '925-724-4889', '917-630-8870', '909-755-7716', '909-064-2740', '908-634-2539', '907-954-2829', '907-300-9885', '905-214-8963', '900-428-3126', '899-926-3502', '895-674-3729', '895-170-2989', '891-128-6718', '889-452-8778', '888-579-9190', '885-937-0762', '885-061-7354', '884-983-1171', '884-246-8243', '881-506-2621', '880-032-9574', '877-413-7306', '872-511-8029', '869-991-2110', '864-868-5416', '860-881-3085', '858-646-5232', '855-527-7918', '852-344-6306', '850-614-8538', '848-320-3074', '842-227-9981', '840-501-0723', '839-605-3980', '835-791-0961', '829-951-4021', '828-691-7386', '807-288-2429', '806-510-4334', '804-784-1517', '803-830-1926', '802-526-6584', '800-830-2410', '796-889-8074', '796-131-7321', '789-731-6258', '785-654-5002', '781-104-3785', '776-961-4536', '774-856-0407', '773-392-7583', '768-158-3053', '765-155-1395', '764-524-0476', '760-220-3797', '758-671-4978', '757-220-4974', '756-558-3856', '756-511-3412', '756-171-1476', '753-593-3672', '753-041-4714', '751-833-0565', '751-176-1472', '750-448-9002', '749-320-5929', '741-443-6523', '740-899-6887', '739-899-1527', '728-359-2557', '724-448-6729', '722-755-8864', '720-616-7872', '718-237-8957', '718-031-7342', '717-847-2922', '711-343-1474', '710-129-0820', '707-167-9687', '707-135-3207', '703-464-9619', '700-472-2206', '699-671-4282', '686-066-4729', '680-265-3198', '680-144-0394', '676-465-7129', '672-876-9725', '672-751-2978', '671-865-1583', '668-788-2325', '664-369-3777', '660-249-0240', '653-195-5225', '646-634-0784', '632-781-5622', '627-166-0725', '626-258-9709', '625-250-1403', '621-502-7480', '616-529-1024', '613-630-0864', '601-577-1034', '600-317-8081', '598-518-2539', '598-133-0295', '593-331-8323', '592-133-4427', '588-377-4889', '584-153-2470', '583-821-4821', '574-286-7525', '573-885-7620', '562-685-7637', '562-599-5076', '558-732-8768', '553-141-3280', '548-613-9038', '547-307-0576', '542-167-6611', '538-138-9481', '531-765-8053', '527-721-1106', '526-543-0625', '518-428-8472', '515-467-8782', '514-400-3808', '508-223-7259', '506-770-3685', '506-501-1174', '500-378-7427', '497-781-7714', '489-547-2730', '487-855-7772', '485-605-7861', '484-713-9386', '481-278-7176', '478-969-9672', '478-777-3561', '474-498-9083', '474-007-6133', '466-937-6486', '460-153-1886', '455-083-3729', '454-693-9325', '452-540-5965', '451-489-4510', '442-775-9551', '435-289-3929', '434-745-1614', '434-198-0639', '431-634-3572', '430-234-3320', '427-424-6315', '425-013-9034', '424-632-5723', '421-833-0827', '421-267-4929', '416-509-4933', '415-998-8123', '414-742-8225', '413-862-6629', '413-655-1902', '413-331-0826', '405-698-9972', '403-958-4497', '401-512-8427', '398-119-3823', '396-412-8653', '395-268-8472', '392-323-1025', '391-321-0227', '389-428-7495', '381-344-0085', '381-253-8576', '379-400-8629', '378-907-8530', '378-135-5304', '378-042-7571', '375-733-0472', '375-213-4940', '373-455-2329', '369-937-3177', '368-966-0024', '368-898-3994', '368-727-6669', '356-739-8806', '356-594-7426', '342-818-4382', '342-507-7527', '341-417-9510', '340-087-9008', '338-822-7589', '336-931-5485', '336-152-7340', '330-875-6427', '329-466-0837', '323-629-7725', '322-805-5252', '322-468-0035', '322-385-5304', '321-669-4553', '320-979-9435', '319-781-9969', '315-963-0823', '314-752-3059', '313-304-7178', '312-797-8811', '309-362-6621', '297-754-9285', '296-991-1927', '296-116-3862', '292-521-3327', '287-364-8174', '280-774-5976', '274-509-3041', '273-046-2423', '266-301-8925', '264-521-2323', '261-762-6373', '258-725-4878', '255-446-8521', '251-556-1478', '251-142-3688', '245-955-6973', '241-637-7376', '239-281-9088', '237-648-5880', '235-936-0178', '235-137-1827', '235-043-0837', '231-709-7881', '229-415-3190', '227-351-7600', '225-943-2863', '225-915-5629', '225-528-9570', '223-380-5121', '215-611-0343', '214-750-8125', '207-500-6878', '204-292-7012', '204-069-9727', '203-109-9021', '201-045-0724', '200-631-2176', '199-526-0678', '198-702-2360', '192-988-9023', '185-575-4885', '184-043-2679', '183-969-0314', '182-989-1621', '182-658-8995', '179-653-2326', '173-621-3385', '173-408-8529', '170-902-5708', '170-706-2380', '167-988-9616', '166-254-3425', '164-808-1409', '161-924-6271', '160-692-0029', '156-449-4188', '153-799-6576', '151-413-2904', '138-857-4025', '138-815-0221', '138-026-9837', '135-986-4041', '135-496-2827', '132-816-6327', '123-811-5774', '123-437-4321', '119-039-3025', '118-692-0962', '117-659-8877', '117-111-2974', '116-167-8846', '112-690-3425', '112-501-2988', '111-644-2872', '106-024-1110', '104-224-6026', '102-960-5140', '102-725-9525', '100-664-8978', '462-247-5479', '832-081-6061', '385-378-8385', '153-759-9516', '557-798-2924', '663-700-4828', '218-306-8481', '880-439-6234', '885-695-1363', '177-600-7777', '591-650-6832', '838-666-2067', '239-434-9322', '369-918-9710', '967-825-7970', '496-628-4924', '890-301-5775', '335-636-2214', '193-692-4285', '945-964-0620', '183-023-0430', '846-646-2453', '705-832-4806', '295-594-5055', '401-441-3474', '161-882-1774', '169-416-4018', '259-418-0567', '340-319-3304', '344-841-3865', '274-751-4351', '536-670-2083', '995-901-7117', '952-970-4083', '926-253-6124', '855-687-0485', '774-537-4330', '766-257-0521', '738-598-5278', '732-597-2231', '624-247-7208', '618-997-2208', '602-387-3923', '588-492-7996', '531-727-2179', '477-058-0716', '426-445-4738', '367-575-4312', '345-732-4021', '267-899-7423', '225-874-2208', '209-262-7359', '169-439-3832', '156-883-1076', '106-259-5780', '105-693-4772', '946-461-1508', '666-436-7590', '124-076-8529', '933-499-8956', '826-940-9162', '802-191-6503', '547-588-0034', '659-350-3481', '493-941-8950', '472-133-6818', '444-518-8301', '272-756-1652', '200-740-5044', '159-216-5921', '126-155-4699', '619-597-8271', '253-530-5462', '735-338-1285', '903-016-4232', '769-217-8555', '592-750-6240', '404-009-3251', '242-546-5681', '629-082-1618', '678-257-3414', '272-411-2228', '353-311-3534', '314-254-6873', '861-291-2455', '126-322-3361', '719-344-0753', '712-698-8987', '450-107-0904', '594-291-4329', '587-080-9489', '426-828-1085', '454-665-9612', '237-330-3465', '923-782-1605', '335-879-2634', '331-840-2227', '462-071-4508', '348-033-6783'),
-    'report' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-
-
-
-// Project [HS - Ad]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'hs_ad',
-    'file_name' => "adwords_historical_hs_ad_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/TosspM4R9xjQ_uC-ohUA_aGnXysV42DdFzghQszWOqs',
-    'accounts' =>array('704-025-7619', '908-947-4290', '714-325-6698', '324-759-1001', '756-093-6674', '442-961-2601', '988-421-0729', '930-170-8395', '759-200-7664', '849-992-0813', '311-578-4939', '377-468-5688', '854-942-2560', '727-486-3217', '144-300-2462', '247-886-6052', '645-676-6082', '358-323-8078', '769-267-2754'),
-    'report' => 'AD_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CreativeFinalUrls,AdGroupName,AverageCpv,CampaignName,Clicks,Cost,Ctr,Headline,Impressions,VideoQuartile100Rate,VideoViews',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-// Project [HS - Campaign]
-array_push($extractions['items'], array(
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_name' => 'aio_phd',
-    'task_name' => 'hs_campaign',
-    'file_name' => "adwords_historical_hs_campaign_2017-06-01_".$extractions['global']['date']['yesterday'] .".csv",
-    'refresh_token' => '1/TosspM4R9xjQ_uC-ohUA_aGnXysV42DdFzghQszWOqs',
-    'accounts' =>array('704-025-7619', '908-947-4290', '714-325-6698', '324-759-1001', '756-093-6674', '442-961-2601', '988-421-0729', '930-170-8395', '759-200-7664', '849-992-0813', '311-578-4939', '377-468-5688', '854-942-2560', '727-486-3217', '144-300-2462', '247-886-6052', '645-676-6082', '358-323-8078', '769-267-2754'),
-    'report' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => $extractions['global']['adwords']['historic'],
-    'endDate' => $extractions['global']['adwords']['yesterday']
-));
-
-
-
-*/
-
 
 
 //
@@ -609,7 +470,7 @@ array_push($extractions['items'], array(
 //
 //
 
-$phd_sample= array(
+$phd_sample = array(
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
     array('profileId' => '4341639', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon - MENA ', 'advertiserId' => '6927278'),
     array('profileId' => '4341639', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'advertiserId' => '2376384'),
@@ -725,79 +586,70 @@ $phd_account_data_flood = array(
 
 
 // histo phduae@annalect.com
-/*
+
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'standard_aio_phd',
+    'task_name' => 'aio_phd-dcm_standard',
     'report_type' => "STANDARD",
     'max_execution_sec' => 3600,
-    'file_name' => "dcm_standard_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'file_name' => "dcm_standard.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_std_cross,
     'json_request' => '{
-  "name": "test alex",
-  "type": "STANDARD",
-  "delivery": {
-    "recipients": [
-      {
-        "deliveryType": "LINK",
-        "email": "phduae@annalect.com"
-      }
-    ]
-  },
-  "schedule": {
-    "active": false,
-    "expirationDate": "2018-01-25",
-    "repeats": "MONTHLY",
-    "startDate": "2018-01-25",
-    "runsOnDayOfMonth": "DAY_OF_MONTH",
-    "every": 12
-  },
-  "criteria": {
-    "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "YESTERDAY"
-    },
-    "dimensions": [
-      {"name": "dfa:campaign"},
-      {"name": "dfa:site"},
-      {"name": "dfa:placement"},
-      {"name": "dfa:creativeSize"},
-      {"name": "dfa:advertiser"},
-      {"name": "dfa:advertiserId"},
-      {"name": "dfa:activity"},
-      {"name": "dfa:placementCostStructure"}
-    ],
-    "metricNames": [
-      "dfa:bookedImpressions",
-      "dfa:bookedClicks",
-      "dfa:plannedMediaCost",
-      "dfa:impressions",
-      "dfa:clicks",
-      "dfa:mediaCost",
-      "dfa:richMediaInteractions",
-      "dfa:richMediaInteractionRate",
-      "dfa:richMediaVideoPlays",
-      "dfa:richMediaVideoCompletions"
-    ],
-    "dimensionFilters": [
-      {
-        "dimensionName": "dfa:advertiser",
-        "id": "4743311"
-      },
-      {
-        "dimensionName": "dfa:advertiser",
-        "id": "4636880"
-      }
-    ]
-  }
+"name": "test alex",
+"type": "STANDARD",
+
+"schedule": {
+"active": false,
+"expirationDate": "2018-01-25",
+"repeats": "MONTHLY",
+"startDate": "2018-01-25",
+"runsOnDayOfMonth": "DAY_OF_MONTH",
+"every": 12
+},
+"criteria": {
+"dateRange": {
+"startDate": "2017-06-01",
+"endDate": "YESTERDAY"
+},
+"dimensions": [
+{"name": "dfa:campaign"},
+{"name": "dfa:site"},
+{"name": "dfa:placement"},
+{"name": "dfa:creativeSize"},
+{"name": "dfa:advertiser"},
+{"name": "dfa:advertiserId"},
+{"name": "dfa:activity"},
+{"name": "dfa:placementCostStructure"}
+],
+"metricNames": [
+"dfa:bookedImpressions",
+"dfa:bookedClicks",
+"dfa:plannedMediaCost",
+"dfa:impressions",
+"dfa:clicks",
+"dfa:mediaCost",
+"dfa:richMediaInteractions",
+"dfa:richMediaInteractionRate",
+"dfa:richMediaVideoPlays",
+"dfa:richMediaVideoCompletions"
+],
+"dimensionFilters": [
+{
+"dimensionName": "dfa:advertiser",
+"id": "4743311"
+},
+{
+"dimensionName": "dfa:advertiser",
+"id": "4636880"
+}
+]
+}
 }'
 ));
-*/
-
 
 
 //   _____   _                       _   _   _           _       _
@@ -808,71 +660,61 @@ array_push($extractions['items'], array(
 //                                               |___/
 
 
-
 // histo phduae@annalect.com
-/*
+
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'floodlight_historical_aio_phd',
+    'task_name' => 'aio_phd-dcm_floodlight',
     'max_execution_sec' => 3600,
     'report_type' => 'FLOODLIGHT',
-    'file_name' => "dcm_floodlight_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'file_name' => "dcm_floodlight.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_flood,
     'json_request' => '{
-          "name": "test alex",
-          "type": "FLOODLIGHT",
-          "delivery": {
-            "recipients": [
-              {
-                "deliveryType": "LINK",
-                "email": "phduae@annalect.com"
-              }
-            ]
-          },
-          "schedule": {
-            "active": false,
-            "expirationDate": "2018-01-24",
-            "repeats": "MONTHLY",
-            "startDate": "2018-01-24",
-            "runsOnDayOfMonth": "DAY_OF_MONTH",
-            "every": 12
-          },
-          "floodlightCriteria": {
-            "dateRange": {
-            "startDate": "2017-06-01",
-            "endDate": "YESTERDAY"
-            },
-            "dimensions": [
-              {"name": "dfa:campaign"},
-              {"name": "dfa:site"},
-              {"name": "dfa:placement"},
-              {"name": "dfa:creativeSize"},
-              {"name": "dfa:advertiser"},
-              {"name": "dfa:advertiserId"},
-              {"name": "dfa:campaignId"},
-              {"name": "dfa:date"},
-              {"name": "dfa:floodlightConfigId"},
-              {"name": "dfa:activity"},
-              {"name": "dfa:activityId"}
-            ],
-            "metricNames": [
-              "dfa:activityClickThroughConversions",
-              "dfa:activityViewThroughConversions",
-              "dfa:totalConversions"
-            ],
-            "floodlightConfigId": {
-              "value": "123456",
-              "dimensionName": "dfa:floodlightConfigId"
-            }
-          }
-        }'
-));
-*/
+"name": "test alex",
+"type": "FLOODLIGHT",
 
+"schedule": {
+"active": false,
+"expirationDate": "2018-01-24",
+"repeats": "MONTHLY",
+"startDate": "2018-01-24",
+"runsOnDayOfMonth": "DAY_OF_MONTH",
+"every": 12
+},
+"floodlightCriteria": {
+"dateRange": {
+"startDate": "2017-06-01",
+"endDate": "YESTERDAY"
+},
+"dimensions": [
+{"name": "dfa:campaign"},
+{"name": "dfa:site"},
+{"name": "dfa:placement"},
+{"name": "dfa:creativeSize"},
+{"name": "dfa:advertiser"},
+{"name": "dfa:advertiserId"},
+{"name": "dfa:campaignId"},
+{"name": "dfa:date"},
+{"name": "dfa:floodlightConfigId"},
+{"name": "dfa:activity"},
+{"name": "dfa:activityId"}
+],
+"metricNames": [
+"dfa:activityClickThroughConversions",
+"dfa:activityViewThroughConversions",
+"dfa:totalConversions"
+],
+"floodlightConfigId": {
+"value": "123456",
+"dimensionName": "dfa:floodlightConfigId"
+}
+}
+}'
+));
 
 
 //
@@ -889,59 +731,51 @@ array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_name' => 'aio_phd',
-    'task_name' => 'crossreach_historical_aio_phd',
+    'task_name' => 'aio_phd-dcm_crossreach',
     'max_execution_sec' => 3600,
     'report_type' => "CROSS_DIMENSION_REACH",
-    'file_name' => "dcm_crossreach_historical_2017-06-01_".$extractions['global']['dcm']['yesterday'].".csv",
+    'file_name' => "dcm_crossreach.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_std_cross,
     'json_request' => '{
-  "name": "test alex",
-  "type": "CROSS_DIMENSION_REACH",
-  "delivery": {
-    "recipients": [
-      {
-        "deliveryType": "LINK",
-        "email": "phduae@annalect.com"
-      }
-    ]
-  },
-  "schedule": {
-    "active": false,
-    "expirationDate": "2018-01-24",
-    "repeats": "MONTHLY",
-    "startDate": "2018-01-24",
-    "runsOnDayOfMonth": "DAY_OF_MONTH",
-    "every": 12
-  },
-  "crossDimensionReachCriteria": {
-    "dateRange": {
-        "startDate": "2017-06-01",
-        "endDate": "YESTERDAY"
-    },
-    "metricNames": [
-      "dfa:cookieReachClickReach",
-      "dfa:cookieReachImpressionReach"
-    ],
-    "dimension": "CAMPAIGN",
-    "breakdown": [
-      {
-        "name": "dfa:date",
-        "kind": "dfareporting#sortedDimension"
-      }
-    ],
-    "overlapMetricNames": [
-      "dfa:cookieReachOverlapClickReach"
-    ],
-    "dimensionFilters": [
-      {
-        "dimensionName": "dfa:advertiser",
-        "matchType": "EXACT",
-        "id": "4743311"
-      }
-    ]
-  }
+"name": "test alex",
+"type": "CROSS_DIMENSION_REACH",
+
+"schedule": {
+"active": false,
+"expirationDate": "2018-01-24",
+"repeats": "MONTHLY",
+"startDate": "2018-01-24",
+"runsOnDayOfMonth": "DAY_OF_MONTH",
+"every": 12
+},
+"crossDimensionReachCriteria": {
+"dateRange": {
+"startDate": "2017-06-01",
+"endDate": "YESTERDAY"
+},
+"metricNames": [
+"dfa:cookieReachClickReach",
+"dfa:cookieReachImpressionReach"
+],
+"dimension": "CAMPAIGN",
+"breakdown": [
+{
+"name": "dfa:date",
+"kind": "dfareporting#sortedDimension"
+}
+],
+"overlapMetricNames": [
+"dfa:cookieReachOverlapClickReach"
+],
+"dimensionFilters": [
+{
+"dimensionName": "dfa:advertiser",
+"matchType": "EXACT",
+"id": "4743311"
+}
+]
+}
 }'
 ));
-

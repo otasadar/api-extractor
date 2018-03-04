@@ -1,6 +1,6 @@
-application: annalect-api-jobs
+#application: annalect-api-jobs
 service: api-extractor
-version: v1
+#version: v1
 
 runtime: php55
 api_version: 1
