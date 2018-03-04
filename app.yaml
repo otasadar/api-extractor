@@ -46,6 +46,14 @@ handlers:
   script: tasker.php
   secure: always
 
+- url: /run-bigquery
+  script: run-bigquery.php
+  secure: always
+
+- url: /run-talendjob
+  script: run-talendjob.php
+  secure: always
+
 - url: /test
   script: test.php
   secure: always
