@@ -38,4 +38,4 @@ application/logs/*
 /queue.yaml
 /cron.yaml
 /batch.yaml
-/assets/codemirror/
+
