@@ -22,12 +22,14 @@ include __DIR__ . '/api/helpers.php';
 include __DIR__ . '/api/adwords.php';
 include __DIR__ . '/api/dcm.php';
 include __DIR__ . '/api/facebook.php';
+include __DIR__ . '/api/ga.php';
 
 
 $helpers = new helpers();
 $adwords = new adwords();
 $dcm = new dcm();
 $facebook = new facebook();
+$ga = new ga();
 
 $extraction = $_POST['extraction'];
 $extraction['extraction_id'] = $_POST['extraction_id'];
@@ -394,6 +396,56 @@ switch ($extraction['api']) {
                 $extraction = $helpers->result_log($extraction, $log_values);
             }
         }
+        break;
+
+    case "ga":
+
+        // create file with header
+
+        $extraction['csv_output'] = $extraction['headers']."\n";
+        $helpers->create_csv_file($extraction);
+
+        foreach ($extraction['accountsData'] as $key => $account) {
+
+            $extraction['current'] = $account;
+            $extraction['current']['key'] = $key;
+
+
+            // Start
+            $log_values = Array(
+                $extraction['api'],
+                $extraction['task_name'],
+                $extraction['current']['accountId'],
+                $extraction['current']['accountName'],
+                $extraction['report'],
+                "START",
+                null);
+
+            $extraction = $helpers->result_log($extraction, $log_values);
+            $extraction = $helpers->check_access_token($extraction);
+            $account_data = $ga->set_ga_request($extraction, null);
+
+            if (mb_strlen($account_data) > 1 ) {
+                $extraction['csv_output'] = $account_data;
+                $helpers->storage_insert_combine_delete($extraction);
+                $result = "OK";
+            } else {
+                $result = "EMPTY";
+            }
+
+            $log_values = Array(
+                $extraction['api'],
+                $extraction['task_name'],
+                $extraction['current']['accountId'],
+                $extraction['current']['accountName'],
+                $extraction['task_name'],
+                $result,
+                mb_strlen($account_data));
+            syslog(LOG_DEBUG, json_encode($log_values));
+            $extraction = $helpers->result_log($extraction, $log_values);
+
+        }
+
         break;
 
     default:
