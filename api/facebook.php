@@ -21,7 +21,7 @@ class facebook
         $curl_response = $this->make_facebook_request('GET', $extraction['current']['accountId'], $extraction['metrics'], $extraction['breakdowns'], $extraction['attribution_window'], $extraction['startDate'], $extraction['endDate'], $extraction['global']['facebook']['long_token']);
 
         if ($curl_response) {
-            return array($this->json_to_csv($curl_response, $extraction['header'],$extraction['actions'],$extraction['actions_cost']), '');
+            return array($this->json_to_csv($curl_response, $extraction['report_header'],$extraction['actions'],$extraction['actions_cost']), '');
 
         } else {
             $curl_response = $this->make_facebook_request('POST', $extraction['current']['accountId'], $extraction['metrics'], $extraction['breakdowns'], $extraction['attribution_window'], $extraction['startDate'], $extraction['endDate'], $extraction['global']['facebook']['long_token']);
@@ -100,7 +100,7 @@ class facebook
                     return $this->make_async_facebook_request($extraction, $id);
                 }
             } else {
-                return $this->json_to_csv($curl_response, $extraction['header'], $extraction['actions'], $extraction['actions_cost']);
+                return $this->json_to_csv($curl_response, $extraction['report_header'], $extraction['actions'], $extraction['actions_cost']);
             }
 
         } else {
@@ -116,7 +116,7 @@ class facebook
                     if (strpos($curl_response, 'Please reduce the amount of data you\'re asking for, then retry your request') !== false) {
                         return $this->make_async_facebook_request($extraction, $id);
                     } else {
-                        return $this->json_to_csv($curl_response, $extraction['header'], $extraction['actions'], $extraction['actions_cost']);
+                        return $this->json_to_csv($curl_response, $extraction['report_header'], $extraction['actions'], $extraction['actions_cost']);
                     }
                 }
             }
@@ -146,7 +146,7 @@ class facebook
 
                 if (!json_decode($curl_response)->paging->next) {
                     array_push($array_pagination2, $array_pagination);
-                    return $this->json_to_csv(json_encode($array_pagination2), $extraction['header'], $extraction['actions'], $extraction['actions_cost']);
+                    return $this->json_to_csv(json_encode($array_pagination2), $extraction['report_header'], $extraction['actions'], $extraction['actions_cost']);
 
                 } else {
 
@@ -155,7 +155,7 @@ class facebook
 
         } else {
             array_push($array_pagination2, $array_pagination);
-            return $this->json_to_csv(json_encode($array_pagination2), $extraction['header'], $extraction['actions'], $extraction['actions_cost']);
+            return $this->json_to_csv(json_encode($array_pagination2), $extraction['report_header'], $extraction['actions'], $extraction['actions_cost']);
         }
     }
 
@@ -189,11 +189,14 @@ class facebook
                                 foreach ($actions_array as $action) {
                                     $found = false;
                                     foreach ($value as $subline) {
-                                        if ($action === $subline->action_type) {
-                                            $actionsArray[] = $subline->value;
-                                            $found = true;
-                                            break;
+                                        if (isset($subline->action_type) && isset($subline->value) ){
+                                            if ($action === $subline->action_type) {
+                                                $actionsArray[] = $subline->value;
+                                                $found = true;
+                                                break;
+                                            }
                                         }
+
                                     }
                                     if (!$found){
                                         $actionsArray[] = '0';
@@ -207,11 +210,14 @@ class facebook
                                 foreach ($actions_cost_array as $action) {
                                     $found = false;
                                     foreach ($value as $subline) {
-                                        if ($action === $subline->action_type) {
-                                            $actionsCostArray[] = $subline->value;
-                                            $found = true;
-                                            break;
+                                        if (isset($subline->action_type) && isset($subline->value) ){
+                                            if ($action === $subline->action_type) {
+                                                $actionsCostArray[] = $subline->value;
+                                                $found = true;
+                                                break;
+                                            }
                                         }
+
                                     }
                                     if (!$found){
                                         $actionsCostArray[] = '0';
@@ -222,7 +228,9 @@ class facebook
 
                             //Summig up all values
                             foreach ($value as $subline) {
-                                $sum = $sum + floatval($subline->value);
+                                if (isset($subline->value)){
+                                    $sum = $sum + floatval($subline->value);
+                                }
                             }
                             $value = (string)$sum;
                             $sum = 0;
@@ -230,10 +238,10 @@ class facebook
 
                         $outputArray[] = $value;
 
-                        if ($actionsArray){
+                        if (isset($actionsArray)){
                             foreach ($actionsArray as $action_value) {
                                 //
-                                //$log_values = Array($extraction['api'], $extraction['task_name'], $extraction['current']['accountId'], $extraction['current']['accountName'], 'async', $action_value);
+                                //$log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'async', $action_value);
                                 //$helpers->result_log($extraction, $log_values);
                                 //
                                 $outputArray[] = $action_value;
@@ -241,7 +249,7 @@ class facebook
                             $actionsArray = [];
                         }
 
-                        if ($actionsCostArray){
+                        if (isset($actionsCostArray)){
                             foreach ($actionsCostArray as $action_value) {
                                 $outputArray[] = $action_value;
                             }
@@ -306,14 +314,14 @@ class facebook
                                 }
                                 $outputArray[] = $value;
 
-                                if ($actionsArray){
+                                if (isset($actionsArray)){
                                     foreach ($actionsArray as $action_value) {
                                         $outputArray[] = $action_value;
                                     }
                                     $actionsArray = [];
                                 }
 
-                                if ($actionsCostArray){
+                                if (isset($actionsCostArray)){
                                     foreach ($actionsCostArray as $action_value) {
                                         $outputArray[] = $action_value;
                                     }

@@ -1,6 +1,7 @@
 <?php
 use google\appengine\api\log\LogService;
 include_once __DIR__ . '/api/helpers.php';
+include_once __DIR__ . '/config-global.php';
 $helpers = new helpers();
 
 //Refresh access token
@@ -12,7 +13,8 @@ syslog(LOG_DEBUG, 'ACCESS TOKEN-> ' . $access_token);
 $headers = array('content-type: application/json', 'authorization : Bearer ' . $access_token);
 
 //End point
-$endpoint = 'https://content.googleapis.com/bigquery/v2/projects/annalect-api-jobs/jobs?alt=json';
+$api_version = $extractions['global']['google_bigquery']['api_version'];
+$endpoint = "https://content.googleapis.com/bigquery/$api_version/projects/annalect-api-jobs/jobs?alt=json";
 
 //Payload data
 $payload = '{"configuration":{"load":{"destinationTable":{"tableId":"' . $_GET['tableId'] . '","projectId":"annalect-api-jobs","datasetId":"' . $_GET['datasetId'] . '"},"autodetect":true,"sourceUris":["gs://annalect-dashboarding/' . $_GET['filePath'] . '"]}}}';

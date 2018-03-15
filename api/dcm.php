@@ -16,20 +16,21 @@ class dcm
     /**
      * DCM Validations for avoid run report on wrong or non-existing ID's
      */
-
-    function __construct()
+    private $helpers;
+    public function __construct()
     {
+        $this->helpers = new helpers();
     }
 
     // DCM Get all profiles ID
     function get_profilesIds($extraction)
     {
 
-        $helpers = new helpers();
         $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles";
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles";
 
-        $curl_response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET', null);
         $curl_response = json_decode($curl_response, true);
 
         $profileIdsValidated = [];
@@ -37,7 +38,7 @@ class dcm
             $profileIdsValidated [] = $result['profileId'];
         }
         if (!empty($profileIdsValidated)) {
-            syslog(LOG_DEBUG, "dcm_check_profilesIds " . implode(',', $profileIdsValidated));
+            $this->helpers->gae_log(LOG_DEBUG, "dcm_check_profilesIds " . implode(',', $profileIdsValidated));
         }
         sleep(1);
         return $profileIdsValidated;
@@ -48,16 +49,16 @@ class dcm
     function check_floodlightConfigIds($profileId, $extraction)
     {
 
-        $helpers = new helpers();
         $floodlightConfigIds = [];
         foreach ($extraction['accountsData'][$profileId] as $row) {
             $floodlightConfigIds[] = $row['floodlightConfigId'];
         }
         $floodlightConfigIds = "?ids=" . implode($floodlightConfigIds, '&ids=');
         $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/floodlightConfigurations$floodlightConfigIds";
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/floodlightConfigurations$floodlightConfigIds";
 
-        $curl_response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET', null);
         $curl_response = json_decode($curl_response, true);
 
         $floodlightConfigIdsValidated = [];
@@ -65,7 +66,7 @@ class dcm
             $floodlightConfigIdsValidated [] = $result['id'];
         }
         if (!empty($floodlightConfigIdsValidated)) {
-            syslog(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
+            $this->helpers->gae_log(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
         }
         sleep(1);
         return $floodlightConfigIdsValidated;
@@ -76,19 +77,20 @@ class dcm
     function check_advertiserIds($profileId, $extraction)
     {
 
-        $helpers = new helpers();
+
         $advertiserIds = [];
-        syslog(LOG_DEBUG, "check control adid-1" . json_encode($advertiserIds));
-        syslog(LOG_DEBUG, "check control adid" . json_encode($extraction['accountsData'][$profileId] ));
+        $this->helpers->gae_log(LOG_DEBUG, "check control adid-1" . json_encode($advertiserIds));
+        $this->helpers->gae_log(LOG_DEBUG, "check control adid" . json_encode($extraction['accountsData'][$profileId] ));
 
         foreach ($extraction['accountsData'][$profileId] as $row) {
             $advertiserIds[] = $row['advertiserId'];
         }
         $advertiserIds = "?ids=" . implode($advertiserIds, '&ids=');
         $headers = array("Authorization: Bearer " . $extraction['access_token'], 'Accept: application/json');
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/advertisers$advertiserIds";
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/advertisers$advertiserIds";
 
-        $curl_response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET', null);
         $curl_response = json_decode($curl_response, true);
 
         $advertiserIdsValidated = [];
@@ -96,7 +98,7 @@ class dcm
             $advertiserIdsValidated [] = $result['id'];
         }
         if (!empty($advertiserIdsValidated)) {
-            syslog(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
+            $this->helpers->gae_log(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
         }
         sleep(1);
         return $advertiserIdsValidated;
@@ -111,47 +113,21 @@ class dcm
     // DCM First Function for start a combo of DCM request
     function start($extraction, $profileId)
     {
+        // Define report
         $api_response = $this->report_setup($profileId, $extraction);
+        $extraction = $this->helpers->check_n_control($api_response, $extraction);
+        if (isset($extraction['current']['error'])) return $extraction;
+
+        // Run report
         $extraction['current']['reportId'] = $api_response->id;
         $api_response = $this->run_report($api_response, $extraction);
+        $extraction = $this->helpers->check_n_control($api_response, $extraction);
+        if (isset($extraction['current']['error'])) return $extraction;
+
         $extraction['current']['fileId'] = $api_response->id;
         $extraction['reportsData'][] = $extraction['current'];
 
-        //$api_response = $this->ask_until_status_available($api_response, $extraction);
         return $extraction;
-
-        /*
-        if (isset($api_response)) {
-            $api_response = run_report($api_response, $extraction);
-        }
-        else  {
-            status_log("DCM {$extraction['report_type']} ERROR run report: {$extraction['report_type']} profileId: $profileId");
-            return false;
-        }
-
-        if (isset($api_response)) {
-            $api_response = ask_until_status_available ($api_response, $extraction);
-        }
-        else  {
-            status_log("DCM  {$extraction['report_type']} ERROR ".
-                return_isset($extraction['current']['profileId'] , "profileId not found {$extraction['current']['profileId']}").
-                return_isset($extraction['current']['floodlightConfigId'], "floodlightConfigId not found {$extraction['current']['floodlightConfigId']}").
-                return_isset($extraction['current']['advertiserId'] , "advertiserId not found {$extraction['current']['advertiserId']}"));
-            return false;
-        }
-
-        if (isset($api_response)) {
-            return $api_response;
-        }
-        else  {
-            status_log("DCM ERROR {$extraction['report_type']} {$extraction['report_type']}".
-                return_isset($extraction['current']['profileId'] , "profileId not found {$extraction['current']['profileId']}").
-                return_isset($extraction['current']['floodlightConfigId'], "floodlightConfigId not found {$extraction['current']['floodlightConfigId']}").
-                return_isset($extraction['current']['advertiserId'] , "advertiserId not found {$extraction['current']['advertiserId']}"));
-            return false;
-        }
-        */
-
 
     }
 
@@ -160,17 +136,18 @@ class dcm
     {
         // First request to get DCM Report ID
         $headers = array('Content-type: application/json');
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/reports?access_token=" . $extraction['access_token'];
-        syslog(LOG_DEBUG, "endpoint " . $endpoint);
-        syslog(LOG_DEBUG, "json_request " . $extraction['json_request']);
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/reports?access_token=" . $extraction['access_token'];
+        $this->helpers->gae_log(LOG_DEBUG, "endpoint " . $endpoint);
+        $this->helpers->gae_log(LOG_DEBUG, "json_request " . $extraction['json_request']);
 
-        $helpers = new helpers();
-        $curl_response = $helpers->set_curl($headers, $endpoint, $extraction['json_request'], 'POST', null);
+
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, $extraction['json_request'], 'POST', null);
         $curl_response = json_decode($curl_response);
 
-        //syslog(LOG_DEBUG, "profileId ".$profileId );
+        //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
         //
-        syslog(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
+        $this->helpers->gae_log(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -183,17 +160,18 @@ class dcm
         $profileId = $api_response->ownerProfileId;
         $access_token = $extraction['access_token'];
         $headers = array("Authorization: Bearer $access_token", 'Accept: application/json');
-        $helpers = new helpers();
+
 
 
         // Second request to get DCM report CSV status & final URL
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/reports/$reportId/run";
-        $curl_response = $helpers->set_curl($headers, $endpoint, '', 'POST', null);
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/reports/$reportId/run";
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, '', 'POST', null);
         $curl_response = json_decode($curl_response);
 
-        //syslog(LOG_DEBUG, "reportId ".$reportId );
-        //syslog(LOG_DEBUG, "profileId ".$profileId );
-        syslog(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
+        //$this->helpers->gae_log(LOG_DEBUG, "reportId ".$reportId );
+        //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
+        $this->helpers->gae_log(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -210,18 +188,19 @@ class dcm
         $fileId = $extraction['current']['fileId'];
         $access_token = $extraction['access_token'];
         $headers = array("Authorization: Bearer $access_token ", 'Accept: application/json');
-        $helpers = new helpers();
+
 
         // Second request to get DCM report CSV status & final URL
 
-        $endpoint = "https://www.googleapis.com/dfareporting/v3.0/userprofiles/$profileId/reports/$reportId/files/$fileId";
-        $curl_response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
+        $api_version = $extraction['global']['dcm']['api_version'];
+        $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/reports/$reportId/files/$fileId";
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET', null);
         $curl_response = json_decode($curl_response);
 
-        //syslog(LOG_DEBUG, "reportId ".$reportId );
-        //syslog(LOG_DEBUG, "profileId ".$profileId );
-        //syslog(LOG_DEBUG, "fileId ".$fileId );
-        syslog(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
+        //$this->helpers->gae_log(LOG_DEBUG, "reportId ".$reportId );
+        //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
+        //$this->helpers->gae_log(LOG_DEBUG, "fileId ".$fileId );
+        $this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -229,21 +208,21 @@ class dcm
     // DCM request 4 - Get CSV content by URL
     function get_report_url_content($api_response, $extraction)
     {
-        $helpers = new helpers();
+
         $log_values = Array("original CSV : {$extraction['file_name']} " . $api_response->urls->browserUrl);
-        syslog(LOG_DEBUG, json_encode($log_values));
+        $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
 
         $url = $api_response->urls->apiUrl;
         $status = $api_response->status;
         $access_token = $extraction['access_token'];
 
-        syslog(LOG_DEBUG, "url " . $url);
-        syslog(LOG_DEBUG, "status " . $status);
+        $this->helpers->gae_log(LOG_DEBUG, "url " . $url);
+        $this->helpers->gae_log(LOG_DEBUG, "status " . $status);
 
         $headers = array("Authorization: Bearer $access_token");
         $endpoint = "$url";
-        $curl_response = $helpers->set_curl($headers, $endpoint, null, 'GET');
-        syslog(LOG_DEBUG, "dcm_get_report_url_content: " . strlen($curl_response));
+        $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET');
+        $this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url_content: " . strlen($curl_response));
 
         return $curl_response; // check if is a CSV data or JSON
     }
@@ -251,8 +230,8 @@ class dcm
     // DCM recursive functions for get report data
     function ask_until_status_available($extraction)
     {
-        $helpers = new helpers();
-        $extraction = $helpers->check_access_token($extraction);
+
+        $extraction = $this->helpers->check_access_token($extraction);
         $api_response = $this->get_report_url($extraction);
 
         if ($api_response->status === "REPORT_AVAILABLE") {
@@ -260,7 +239,7 @@ class dcm
             return $api_response2;
 
         } else if ($api_response->status === "PROCESSING") {
-            syslog(LOG_DEBUG, "queueDelay:60");
+            $this->helpers->gae_log(LOG_DEBUG, "queueDelay:60");
             sleep(60);
             return $this->ask_until_status_available($extraction);
 
@@ -268,7 +247,7 @@ class dcm
             /*
             if ($extraction['queueDelay'] < $extraction['max_execution_sec']) {
 
-                syslog(LOG_DEBUG, "queueDelay" . $extraction['queueDelay']);
+                $this->helpers->gae_log(LOG_DEBUG, "queueDelay" . $extraction['queueDelay']);
                 sleep($extraction['queueDelay']);
                 return ask_until_status_available($api_response, $extraction);
 
@@ -277,7 +256,7 @@ class dcm
                     return_isset($extraction['current']['profileId'], "profileId: {$extraction['current']['profileId']}") .
                     return_isset($extraction['current']['floodlightConfigId'], "floodlightConfigId: {$extraction['current']['floodlightConfigId']}") .
                     return_isset($extraction['current']['advertiserId'], "advertiserId: {$extraction['current']['advertiserId']}"));
-                syslog(LOG_DEBUG, "TIMEOUT " . $extraction['max_execution_sec']);
+                $this->helpers->gae_log(LOG_DEBUG, "TIMEOUT " . $extraction['max_execution_sec']);
             }
             */
 
@@ -341,6 +320,7 @@ class dcm
 
     }
 
+
     // GET line from dynamic header
     function get_report_header($raw_data, $extraction, $needle)
     {
@@ -356,17 +336,17 @@ class dcm
                         switch ($extraction['report_type']) {
                             case "STANDARD":
                                 $extraction['csv_output'] = "profileId," . $rows[$i] . "\n";
-                                syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
 
                                 break;
                             case "FLOODLIGHT":
                                 $extraction['csv_output'] = "profileId," . $rows[$i] . "\n";
-                                syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
                                 break;
 
                             case "CROSS_DIMENSION_REACH":
                                 $extraction['csv_output'] = "AdvertiserId," . $rows[$i] . "\n";
-                                syslog(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
                                 break;
                         }
 
@@ -396,31 +376,31 @@ class dcm
                 for ($i = 0; $i < $total_rows; $i++) {
 
                     if (strpos($rows[$i], $needle) !== false) {
-                        syslog(LOG_DEBUG, "founded needle:" . $needle);
-                        syslog(LOG_DEBUG, "removed last line" . $rows[$i]);
+                        $this->helpers->gae_log(LOG_DEBUG, "founded needle:" . $needle);
+                        $this->helpers->gae_log(LOG_DEBUG, "removed last line" . $rows[$i]);
 
 
                         if (empty(trim($rows[($i + 1)]))) {
-                            syslog(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
+                            $this->helpers->gae_log(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
                             unset($rows[($i + 1)]); //next line is empty
                         }
                         unset($rows[$i]);
                         break;
                     } else {
-                        syslog(LOG_DEBUG, "removed line" . $rows[$i]);
+                        $this->helpers->gae_log(LOG_DEBUG, "removed line" . $rows[$i]);
                         unset($rows[$i]);
                     }
 
                 }
             } else {
-                syslog(LOG_DEBUG, "needle not FOUND:" . $raw_data);
+                $this->helpers->gae_log(LOG_DEBUG, "needle not FOUND:" . $raw_data);
             }
 
             // remove footer
             if (isset($remove_last_line)) {
-                syslog(LOG_DEBUG, "removed footer line" . end($rows));
+                $this->helpers->gae_log(LOG_DEBUG, "removed footer line" . end($rows));
                 array_pop($rows);
-                syslog(LOG_DEBUG, "removed footer line2" . end($rows));
+                $this->helpers->gae_log(LOG_DEBUG, "removed footer line2" . end($rows));
                 array_pop($rows);
             }
 
@@ -447,41 +427,38 @@ class dcm
     // Combine results of queries
     function preparing_csv_file($raw_data, $extraction)
     {
-        $helpers = new helpers();
+
         if (mb_strlen($raw_data) > 1) {
 
-            //$helpers->storage_insert_combine_delete($extraction);
+            //$this->helpers->storage_insert_combine_delete($extraction);
             $extraction['csv_output'] .= $raw_data;
 
             $log_values = Array(
-                $extraction['api'],
                 $extraction['current']['profileId'],
-                $helpers->return_isset($extraction['current']['advertiserId']),
-                $helpers->return_isset($extraction['current']['floodlightConfigId']),
-                $extraction['report_type'],
-                $helpers->return_isset($extraction['current']['advertiserName']),
-                $helpers->return_isset($extraction['current']['networkName']),
+                $this->helpers->return_isset($extraction['current']['advertiserId']),
+                $this->helpers->return_isset($extraction['current']['floodlightConfigId']),
+                $this->helpers->return_isset($extraction['current']['advertiserName']),
+                $this->helpers->return_isset($extraction['current']['networkName']),
                 "OK",
                 mb_strlen($raw_data));
-            syslog(LOG_DEBUG, json_encode($log_values));
-            $extraction = $helpers->result_log($extraction, $log_values);
+            $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+            $extraction = $this->helpers->live_log($extraction, $log_values);
 
         } else {
 
             $log_values = Array(
-                $extraction['api'],
                 $extraction['current']['profileId'],
-                $helpers->return_isset($extraction['current']['advertiserId']),
-                $helpers->return_isset($extraction['current']['floodlightConfigId']),
-                $extraction['report_type'],
-                $helpers->return_isset($extraction['current']['advertiserName']),
-                $helpers->return_isset($extraction['current']['networkName']),
+                $this->helpers->return_isset($extraction['current']['advertiserId']),
+                $this->helpers->return_isset($extraction['current']['floodlightConfigId']),
+                $this->helpers->return_isset($extraction['current']['advertiserName']),
+                $this->helpers->return_isset($extraction['current']['networkName']),
                 "EMPTY",
                 mb_strlen($raw_data));
-            syslog(LOG_DEBUG, json_encode($log_values));
-            syslog(LOG_DEBUG, $raw_data);
-            $extraction = $helpers->result_log($extraction, $log_values);
+            $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+            $this->helpers->gae_log(LOG_DEBUG, $raw_data);
+            $extraction = $this->helpers->live_log($extraction, $log_values);
         }
         return $extraction;
     }
 }
+

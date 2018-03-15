@@ -1,6 +1,8 @@
-application: annalect-api-jobs
-service: api-extractor
-version: v2
+#application: annalect-api-jobs
+#service: api-extractor-staging2
+service: api-extractor-staging
+#service: api-extractor
+#version: v1
 
 runtime: php55
 api_version: 1
@@ -42,7 +44,7 @@ handlers:
   script: run.php
   secure: always
 
-- url: /run-tasks
+- url: /run-tasks-.+
   script: tasker.php
   secure: always
 
@@ -56,6 +58,10 @@ handlers:
 
 - url: /run-virtualmachine
   script: run-virtualmachine.php
+  secure: always
+
+- url: /run-append-to-output
+  script: run-append-to-output.php
   secure: always
 
 - url: /test

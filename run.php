@@ -1,6 +1,6 @@
 <?php
 
-$bucket = "annalect-dashboarding";
+$bucket = "api-extractor-staging";
 
 
 ini_set('display_errors', 1);
@@ -48,17 +48,22 @@ if (isset($_POST['code'])) {
 
 eval($config_global.$code);
 
-
+$i = 0;
 foreach ($extractions['items'] as $key => $extraction) {
     $current = $key + 1;
-    $extraction['global'] = $extractions['global'];
+    $extraction['global'] = $extractions['global'] ;
     $extraction['global']['items_counter'] = count($extractions['items']);
-    $task_name = $extraction['api'] . "-" . $extraction['task_name'] . "-" . rand();
-    $task = new PushTask('/run-tasks', ['extraction' => $extraction, 'extraction_id' => $key], ['name' => $task_name]);
-    $task_name = $task->add($extractions['global']['queue']);
+    $extraction['task_name'] = $extraction['api']."-".$extraction['extraction_group']."-".$extraction['extraction_name'];
+    $extraction['extraction_id'] = $key;
 
-    echo "running task :$current of " . count($extractions['items']) . " <br/>";
+    $task_name = $extraction['task_name']."-".rand();
+    $task = new PushTask('/run-tasks-'.$extraction['task_name'], ['extraction' => $extraction], ['name' => $task_name]);
+    $task->add($extractions['global']['queue']);
+    $i++;
+    echo "running task $i - accountsIds:".count($extraction['accountsData'])." - $task_name <br/>";
+
 }
 
-echo '<p><a href="https://docs.google.com/spreadsheets/d/' . $extractions['global']['google_sheet']['sheet_id'] . '/edit#gid=0">Real Time log</a> </p>';
-
+echo "\n";
+echo "queue: {$extractions['global']['queue']}\n";
+echo "task_name: $task_name \n";

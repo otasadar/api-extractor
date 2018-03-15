@@ -34,8 +34,9 @@ application/logs/*
 /application/config/database.php
 /application/config/development/database.php
 /application/config/development/config.php
-/app.yaml
+#/app.yaml
 /queue.yaml
 /cron.yaml
 /batch.yaml
-
+/assets/codemirror/
+/alex/

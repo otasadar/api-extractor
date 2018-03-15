@@ -28,11 +28,8 @@ class adwords
 
 
         $log_values = Array(
-            $extraction['api'],
-            $extraction['task_name'],
             $extraction['current']['accountId'],
             $extraction['current']['accountName'],
-            $extraction['report'],
             $api_response[0],
             $error_reason);
         syslog(LOG_DEBUG, json_encode($log_values));
@@ -45,7 +42,7 @@ class adwords
     {
         $helpers = new helpers();
         $account =$extraction['current']['accountId'];
-        $report = $extraction['report'];
+        $report = $extraction['report_type'];
         $metrics = $extraction['metrics'];
         $startDate = $extraction['startDate'];
         $endDate = $extraction['endDate'];
@@ -71,7 +68,8 @@ class adwords
             'includeZeroImpressions: false');
 
         //URL
-        $endpoint = 'https://adwords.google.com/api/adwords/reportdownload/v201705';
+        $api_version = $extraction['global']['adwords']['api_version'];
+        $endpoint = "https://adwords.google.com/api/adwords/reportdownload/$api_version";
 
 
         //Payload data

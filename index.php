@@ -1,6 +1,6 @@
 <?php
 
-$bucket = 'annalect-dashboarding';
+$bucket = "api-extractor-staging";
 
 require_once __DIR__ . '/api/helpers.php';
 $helpers = new helpers();
@@ -10,10 +10,10 @@ eval($config_global);
 
 $access_token = $helpers->get_storage_access_token($extractions);
 $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
-$endpoint = "https://www.googleapis.com/storage/v1/b/$bucket/o?prefix=config";
+$version = $extractions['global']['google_storage']['api_version'];
+$endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o?prefix=config";
 $response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
 $config_files = json_decode($response);
-
 
 ?>
 <!DOCTYPE html>
@@ -89,7 +89,9 @@ $config_files = json_decode($response);
             <h5 class="header">Other config setup:</h5>
             <?php
             foreach ($config_files->items as $key => $row) {
-                $file_name = str_replace("https://www.googleapis.com/storage/v1/b/$bucket/o/config%2F", "", $row->selfLink);
+                $version = $extractions['global']['google_storage']['api_version'];
+                $pattern = "https://www.googleapis.com/storage/$version/b/$bucket/o/config";
+                $file_name = str_replace("$pattern%2F", "", $row->selfLink);
                 if (strpos($row->selfLink,'backup') ) continue;
                 if (empty($file_name)) continue;
                 echo "<p> <a href='?config=$file_name'>".urldecode($file_name)."</a></p>";
@@ -101,8 +103,12 @@ $config_files = json_decode($response);
             <div class="row ">
                 <h5 class="header">Select config setup:</h5>
                 <?php
+
+
                 foreach ($config_files->items as $key => $row) {
-                    $file_name = str_replace("https://www.googleapis.com/storage/v1/b/$bucket/o/config%2F", "", $row->selfLink);
+                    $version = $extractions['global']['google_storage']['api_version'];
+                    $pattern = "https://www.googleapis.com/storage/$version/b/$bucket/o/config";
+                    $file_name = str_replace("$pattern%2F", "", $row->selfLink);
                     if (strpos($row->selfLink,'backup') ) continue;
                     //if (empty($file_name)) continue;
                     echo "<p> <a href='?config=$file_name'>".urldecode($file_name)."</a> </p>";

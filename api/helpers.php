@@ -5,6 +5,14 @@
  */
 class helpers
 {
+    // Storage file with public permissions
+    function file_put_contents_public($filename, $data)
+    {
+        $options = ['gs' => ['acl' => 'public-read']];
+        $context = stream_context_create($options);
+        file_put_contents($filename, $data, 0, $context);
+    }
+
     //  SET_APIS - INVOKE API FUNCTION TO LOAD THE ACCOUNTS LISTS
     function get_access_token($client_id, $client_secret, $refresh_token)
     {
@@ -17,18 +25,30 @@ class helpers
         if ($access_token) {
             return json_decode($access_token)->access_token;
         } else {
-            syslog(LOG_DEBUG, 'error access token' . $access_token);
+            $this->gae_log(LOG_DEBUG, 'error access token' . $access_token);
             return false;
         }
     }
 
     function check_access_token($extraction, $case = null)
     {
-        if ($case === 'sheets') {
-            $access_token_datetime = $extraction['global']['google_sheet']['access_token_datetime'];
-        } else {
-            $access_token_datetime = $extraction['access_token_datetime'];
+
+        switch ($case) {
+
+            case "google_transfer":
+                $access_token_datetime = $extraction['global']['google_storage_transfer']['access_token_datetime'];
+                break;
+            case "sheets":
+                $access_token_datetime = $extraction['global']['google_sheet']['access_token_datetime'];
+                break;
+            case "tasks":
+                $access_token_datetime = $extraction['global']['tasks']['access_token_datetime'];
+                break;
+            default:
+                $access_token_datetime = $extraction['access_token_datetime'];
         }
+
+
         $now = new DateTime();
         $start_date = new DateTime($access_token_datetime);
         $since_start = $start_date->diff(new DateTime($now->format('Y-m-d H:i:s')));
@@ -41,14 +61,29 @@ class helpers
             $client_id = $extraction['global']['google']['client_id'];
             $client_secret = $extraction['global']['google']['client_secret'];
 
-            if ($case === 'sheets') {
-                $extraction['global']['google_sheet']['access_token'] = $this->get_access_token($client_id, $client_secret, $extraction['global']['google_sheet']['refresh_token']);
-                $extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
-            } else {
-                syslog(LOG_DEBUG, 'access_token');
-                $extraction['access_token'] = $this->get_access_token($client_id, $client_secret, $extraction['refresh_token']);
-                $extraction['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+            switch ($case) {
+                case "google_transfer":
+                    $refresh_token = $extraction['global']['google_storage_transfer']['refresh_token'];
+                    $extraction['global']['google_storage_transfer']['access_token'] = $this->get_access_token($client_id, $client_secret, $refresh_token);
+                    $extraction['global']['google_storage_transfer']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+                    break;
+                case "sheets":
+                    $refresh_token = $extraction['global']['google_sheet']['refresh_token'];
+                    $extraction['global']['google_sheet']['access_token'] = $this->get_access_token($client_id, $client_secret, $refresh_token);
+                    $extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+                    break;
+                case "tasks":
+                    $refresh_token = $extraction['global']['tasks']['refresh_token'];
+                    $extraction['global']['tasks']['access_token'] = $this->get_access_token($client_id, $client_secret, $refresh_token);
+                    $extraction['global']['tasks']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+                    break;
+                default:
+                    $this->gae_log(LOG_DEBUG, 'access_token');
+                    $extraction['access_token'] = $this->get_access_token($client_id, $client_secret, $extraction['refresh_token']);
+                    $extraction['access_token_datetime'] = $now->format('Y-m-d H:i:s');
             }
+
+
         }
 
         return $extraction;
@@ -56,23 +91,27 @@ class helpers
     }
 
     //  SET CURL GENERAL - HELPER METHOD THAT ISSUES A CURL REQUEST
-    function set_curl($headers, $endpoint, $payload, $type, $extras = null)
+    function set_curl($headers, $endpoint, $payload, $type, $extras = null, $range = null)
     {
 
         $curl = curl_init();
 
         curl_setopt($curl, CURLOPT_URL, $endpoint);
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $type);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_TIMEOUT, 600);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $payload);
 
-
+        if (isset($headers)) {
+            curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        }
         if (isset($extras)) {
             foreach ($extras as $extra) {
                 curl_setopt($curl, $extra[0], $extra[1]);
             }
+        }
+        if (isset($range)) {
+            curl_setopt($curl, CURLOPT_RANGE, $range);
         }
 
         $response = curl_exec($curl);
@@ -81,34 +120,38 @@ class helpers
 
         if (strpos($info['http_code'], '30') !== false) {
 
-            syslog(LOG_DEBUG, "URL size before downlodad:" . $this->get_curl_remote_file_size($info['redirect_url']));
-
+            $this->gae_log(LOG_DEBUG, "URL size before downlodad:" . $this->get_curl_remote_file_size($info['redirect_url']));
             $response = $this->set_simple_curl($info['redirect_url']);
-            syslog(LOG_DEBUG, "simple curl after downlodad:" . mb_strlen($response));
+            $this->gae_log(LOG_DEBUG, "simple curl after downlodad:" . mb_strlen($response));
             return $response;
-        } else if ($response === false || $info['http_code'] != 200) {
-            //syslog(LOG_DEBUG, "error curl :" . json_encode($info));
-            syslog(LOG_DEBUG, "error curl :" . $endpoint);
-            //syslog(LOG_DEBUG, "error curl :" . json_encode($headers));
-            syslog(LOG_DEBUG, "error curl :" . $response);
-            syslog(LOG_DEBUG, "error curl :" . $type);
-            return array($info['http_code'], $response);
+
+        } else if (strpos($info['http_code'], '20') !== false) {
+
+            return $response;
+
         } else {
-            return $response;
+            //$this->gae_log(LOG_DEBUG, "error curl :" . json_encode($info));
+            //$this->gae_log(LOG_DEBUG, "error curl :" . json_encode($headers));
+            $this->gae_log(LOG_DEBUG, "error curl :" . $endpoint);
+            $this->gae_log(LOG_DEBUG, "error curl :" . $response);
+            $this->gae_log(LOG_DEBUG, "error curl :" . $type);
+            return array($info['http_code'], $response, $endpoint, $info);
         }
     }
 
     // Simple CURL for DCM URL extractions
-    function set_simple_curl($url)
+    function set_simple_curl($url, $range = null)
     {
         $ch = curl_init();
 
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
+        if (isset($range)) {
+            curl_setopt($ch, CURLOPT_RANGE, $range);
+        }
         $result = curl_exec($ch);
         if (curl_errno($ch)) {
-            syslog(LOG_DEBUG, "error set_simple_curl" . curl_error($ch));
+            $this->gae_log(LOG_DEBUG, "error set_simple_curl" . curl_error($ch));
         }
         curl_close($ch);
         return $result;
@@ -123,7 +166,7 @@ class helpers
         curl_setopt($ch, CURLOPT_HEADER, TRUE);
         curl_setopt($ch, CURLOPT_NOBODY, TRUE);
 
-        $data = curl_exec($ch);
+        curl_exec($ch);
         $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
 
         curl_close($ch);
@@ -131,19 +174,18 @@ class helpers
     }
 
     // SET CURL - CREATE AND UPDATE CSV FILE
-    function create_csv_file($extraction)
+    function create_csv_file($extraction, $file_path = null)
     {
 
         $csv_string = $extraction['csv_output'];
-        $storage_data = $extraction['global']['storage_data'];
-        $bucket = $extraction['global']['storage_data']['bucket'];
-
+        $storage_data = $extraction['global']['google_storage'];
+        $bucket = $extraction['global']['google_storage']['bucket'];
 
         $access_token = $this->get_storage_access_token($extraction);
 
 
         if ($access_token) {
-            $resumable_session_url = $this->get_google_storage_session_url($extraction, $bucket, $access_token);
+            $resumable_session_url = $this->get_google_storage_session_url($extraction, $bucket, $access_token, $file_path);
             if (!is_array($resumable_session_url)) {
 
                 $report_metadata_latest = $this->upload_report_to_google_storage($resumable_session_url, $csv_string);
@@ -158,25 +200,27 @@ class helpers
                 }
 
             } else {
-                syslog(LOG_DEBUG, 'Report metadata has not been updated to the Data Base.');
+                $this->gae_log(LOG_DEBUG, 'Report metadata has not been updated to the Data Base.');
             }
         } else {
-            syslog(LOG_DEBUG, 'access token not found');
+            $this->gae_log(LOG_DEBUG, 'access token not found');
         }
     }
 
     // SET CURL - GOOGLE CLOUD SESSION URL
-    function get_google_storage_session_url($extraction, $bucket, $access_token)
+    function get_google_storage_session_url($extraction, $bucket, $access_token, $file_path = null)
     {
-        $file_path = "{$extraction['extraction_name']}/input/{$extraction['api']}/{$extraction['file_name']}";
-        //$file_path = "{$extraction['file_name']}";
+        if (!$file_path) {
+            $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['file_name']}";
+        }
 
         $headers = array('X-Upload-Content-Type: text/csv', 'Content-Type: application/json; charset=UTF-8', 'Authorization : Bearer ' . $access_token);
-        $endpoint = "https://www.googleapis.com/upload/storage/v1/b/$bucket/o?uploadType=resumable&predefinedAcl=publicRead&name=$file_path";
+        $version = $extraction['global']['google_storage']['api_version'];
+        $endpoint = "https://www.googleapis.com/upload/storage/$version/b/$bucket/o?uploadType=resumable&predefinedAcl=publicRead&name=$file_path";
         $extras = array(array(CURLOPT_HEADER, 1));
         $payload = json_encode(['cacheControl' => 'public, max-age=0, no-transform']);
 
-        syslog(LOG_DEBUG, 'Cloud storage: ' . $endpoint);
+        $this->gae_log(LOG_DEBUG, 'Cloud storage: ' . $endpoint);
 
         //Cloud session URL
         $resumable_session_url = $this->set_curl($headers, $endpoint, $payload, 'POST', $extras);
@@ -219,18 +263,18 @@ class helpers
 
         $extraction['file_name'] = str_replace('.csv', '_tmp.csv', $extraction['file_name']);
 
-        syslog(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
+        $this->gae_log(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
         $this->create_csv_file($extraction);
 
         $response = $this->combine_tmp_google_storage($extraction);
-        //syslog(LOG_DEBUG, 'Combine result : ' . $response);
+        //$this->gae_log(LOG_DEBUG, 'Combine result : ' . $response);
 
         if (!is_array($response)) {
             $response = $this->delete_tmp_google_storage($extraction);
 
             if (is_array($response)) {
                 if ($response[0] !== 204) {
-                    syslog(LOG_DEBUG, 'errro storage_insert_combine_delete');
+                    $this->gae_log(LOG_DEBUG, 'errro storage_insert_combine_delete');
                 }
             }
         }
@@ -244,21 +288,22 @@ class helpers
         $tmp_file_name = $extraction['file_name'];
         $file_name = str_replace('_tmp.csv', '.csv', $extraction['file_name']);
 
-        $file_path_encode = urlencode ("{$extraction['extraction_name']}/input/{$extraction['api']}/$file_name");
-        $file_path ="{$extraction['extraction_name']}/input/{$extraction['api']}/$file_name";
-        $tmp_file_path = "{$extraction['extraction_name']}/input/{$extraction['api']}/$tmp_file_name";
+        $file_path_encode = rawurlencode("{$extraction['extraction_group']}/input/{$extraction['api']}/$file_name");
+        $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/$file_name";
+        $tmp_file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/$tmp_file_name";
 
 
-        $bucket = $extraction['global']['storage_data']['bucket'];
+        $bucket = $extraction['global']['google_storage']['bucket'];
         $access_token = $this->get_storage_access_token($extraction);
         $headers = array('Authorization: Bearer ' . $access_token,
             'Accept: application/json',
             'Content-Type: application/json');
         $payload = '{"sourceObjects":[{"name":"' . $file_path . '"},{"name":"' . $tmp_file_path . '"}]}';
-        $endpoint = "https://www.googleapis.com/storage/v1/b/$bucket/o/$file_path_encode/compose";
+        $version = $extraction['global']['google_storage']['api_version'];
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$file_path_encode/compose";
         $response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
 
-        syslog(LOG_DEBUG, "combine:$response");
+        $this->gae_log(LOG_DEBUG, "combine:$response");
 
         return $response;
     }
@@ -267,15 +312,16 @@ class helpers
     function delete_tmp_google_storage($extraction)
     {
         $tmp_file_name = $extraction['file_name'];
-        $tmp_file_path = urlencode ("{$extraction['extraction_name']}/input/{$extraction['api']}/$tmp_file_name");
+        $tmp_file_path = rawurlencode("{$extraction['extraction_group']}/input/{$extraction['api']}/$tmp_file_name");
 
-        syslog(LOG_DEBUG, "delete file : tmp_file_name:$tmp_file_path");
+        $this->gae_log(LOG_DEBUG, "delete file : tmp_file_name:$tmp_file_path");
 
-        $bucket = $extraction['global']['storage_data']['bucket'];
+        $bucket = $extraction['global']['google_storage']['bucket'];
         $access_token = $this->get_storage_access_token($extraction);
         $headers = array('Authorization: Bearer ' . $access_token,
             'Accept: application/json');
-        $endpoint = "https://www.googleapis.com/storage/v1/b/$bucket/o/$tmp_file_path";
+        $version = $extraction['global']['google_storage']['api_version'];
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$tmp_file_path";
         $response = $this->set_curl($headers, $endpoint, null, 'DELETE', null);
         return $response;
     }
@@ -285,15 +331,16 @@ class helpers
     {
 
         //If the access token has expired
-        $gcs_access_token = $extraction['global']['storage_data']['access_token'];
-        $gcs_client = $extraction['global']['storage_data']['client'];
-        $gcs_scope = $extraction['global']['storage_data']['scope'];
-        $gcs_key = $extraction['global']['storage_data']['key'];
+        $gcs_access_token = $extraction['global']['google_storage']['access_token'];
+        $gcs_client = $extraction['global']['google_storage']['client'];
+        $gcs_scope = $extraction['global']['google_storage']['scope'];
+        $gcs_key = $extraction['global']['google_storage']['key'];
+        $api_version = $extraction['global']['google_oauth']['api_version'];
 
-        if ($this->get_http_response_code('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=' . $gcs_access_token) != "200") {
-            $gcs_access_token = $this->get_service_account_access_token($gcs_client, $gcs_scope, $gcs_key);
+        if ($this->get_http_response_code("https://www.googleapis.com/oauth2/$api_version/tokeninfo?access_token=$gcs_access_token") != "200") {
+            $gcs_access_token = $this->get_service_account_access_token($gcs_client, $gcs_scope, $gcs_key, $extraction);
             if (!isset($gcs_access_token)) {
-                syslog(LOG_DEBUG, 'error storage access token:' . $gcs_access_token);
+                $this->gae_log(LOG_DEBUG, 'error storage access token:' . $gcs_access_token);
             }
         }
 
@@ -301,11 +348,12 @@ class helpers
     }
 
     //  Get service account access token - Function that returns an access token to make calls to google cloud storage
-    function get_service_account_access_token($client, $scope, $key)
+    function get_service_account_access_token($client, $scope, $key, $extraction)
     {
 
         $iat = time();
-        $endpoint = "https://www.googleapis.com/oauth2/v4/token";
+        $api_version = $extraction['global']['google_oauth']['api_version'];
+        $endpoint = "https://www.googleapis.com/oauth2/$api_version/token";
 
         //Sign JWT
         $header = array('typ' => 'JWT', 'alg' => 'RS256');
@@ -351,34 +399,29 @@ class helpers
         }
     }
 
-    function return_isset(&$isset, $default = null){
+    // Return any string only if exists without returning undefined message
+    function return_isset(&$isset, $default = null)
+    {
         return isset($isset) ? $isset : $default;
     }
 
-    // status log file - old version
-    function status_log($data)
-    {
-        $file_path = "gs://api-jobs-files/status-stg-" . date('Y-m-d') . ".txt";
-        if (file_exists($file_path)) {
-            $historic_data = file_get_contents($file_path);
-        } else {
-            $historic_data = '';
-        }
-        $new_line = date('Y-m-d h:i:s') . " " . $data . "\n";
-        file_put_contents($file_path, $new_line . $historic_data);
-    }
-
     // log using google sheet
-    function result_log($extraction, $row)
+    function live_log($extraction, $row)
     {
         $now = new DateTime();
-        array_unshift($row, $now->format('d-m-Y'), $now->format('H:i:s'));
+        array_unshift($row,
+            $now->format('d-m-Y'),
+            $now->format('H:i:s'),
+            $extraction['api'],
+            $extraction['task_name'],
+            $extraction['report_type']);
         $extraction = $this->check_access_token($extraction, 'sheets');
         $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
         $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);
-        $endpoint = "https://content-sheets.googleapis.com/v4/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
+        $api_version = $extraction['global']['google_sheet']['api_version'];
+        $endpoint = "https://content-sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
         $payload = json_encode(array("values" => array($row)));// double array
-        $result = $this->set_curl($headers, $endpoint, $payload, 'POST', null, $extraction);
+        $this->set_curl($headers, $endpoint, $payload, 'POST', null);
 
         // limit 'USER-100s' of service 'sheets.googleapis.com'
         // num of task per 1 sec
@@ -386,5 +429,332 @@ class helpers
         usleep($micro_seconds);
         return $extraction;
     }
+
+    // Google Cloud log
+    function gae_log($priority, $message)
+    {
+        if ($_SERVER['HTTP_HOST'] !== 'localhost:8080') {
+            syslog($priority, $message);
+        }
+    }
+
+    // Google App Engine Tasks
+    function get_current_tasks($extraction)
+    {
+
+        //$extraction = $this->check_access_token($extraction, 'tasks');
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $refresh_token = $extraction['global']['tasks']['refresh_token'];
+
+        $access_token = $this->get_access_token($client_id, $client_secret, $refresh_token);
+        $project_id = $extraction['global']['project'];
+        $location_id = $extraction['global']['location'];
+        $queue_id = $extraction['global']['queue'];
+
+        $version = $extraction['global']['tasks']['api_version'];
+        $endpoint = "https://cloudtasks.googleapis.com/$version/projects/$project_id/locations/$location_id/queues/$queue_id/tasks?access_token=$access_token";
+        $this->gae_log(LOG_DEBUG, "tasks-endpoint:" . $endpoint);
+        $response = $this->set_curl(null, $endpoint, null, 'GET', null);
+
+        return $response;
+    }
+
+    // Convert bytes to Mb
+    function bytesToMBytes($bytes, $precision = 1)
+    {
+        return round($bytes / 1000000, $precision) . " Mb";
+    }
+
+    // Put URLs content to buckets
+    function save_urls_data_to_buckets($extraction)
+    {
+        // Get URLS extracted from API process
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $search_str = "{$extraction['extraction_group']}/input/{$extraction['api']}/url";
+        $response = $this->get_urls_to_transfer($extraction, $search_str);
+        $this->gae_log(LOG_DEBUG, "search_str:" . $search_str);
+        $this->gae_log(LOG_DEBUG, "url-to-transfer:" . json_encode($response));
+        $this->live_log($extraction, Array("GET-URLS"));
+
+        // Read URL for get MD5 and size
+        $response = $this->get_urls_md5($response);
+        $this->gae_log(LOG_DEBUG, "get-md5:" . $response);
+        $this->live_log($extraction, Array("GET-URLS-MD5"));
+
+        // Save TSV file
+        $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv", $response);
+        $this->live_log($extraction, Array("SET-TSV"));
+
+        // start transfer from URL source to bucket destination using API Google Transfer
+        $response = $this->transfer_urls_to_bucket($extraction);
+        $this->gae_log(LOG_DEBUG, "transfer-response:" . json_encode($response));
+        $this->live_log($extraction, Array("TRANSFER","START"));
+
+        // check status until === ENABLED
+        $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
+        // to do : if status !== SUCCESS die process
+
+
+        // Move tmp transferred object to final location and delete tmp
+        $search_str = "storage.googleapis.com";
+        $destination_folder = "{$extraction['extraction_group']}/input/{$extraction['api']}";
+        $this->move_buckets_files($extraction, $search_str, $destination_folder);
+        $this->live_log($extraction, Array("MOVE-OBJECTS"));
+
+    }
+
+    // Get all URLS to transfer
+    function get_urls_to_transfer($extraction, $search_str)
+    {
+        // find all files
+        // get urls from buckets
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
+        $version = $extraction['global']['google_storage']['api_version'];
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $path = rawurlencode($search_str);
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o?prefix=$path";
+        $response = $this->set_curl($headers, $endpoint, null, 'GET', null);
+        return json_decode($response);
+    }
+
+    // Get MD5 from VM
+    function get_urls_md5($response)
+    {
+
+        $tsv_data = [];
+        foreach ($response->items as $item) {
+
+            //$object = explode('/', $item->selfLink);
+            //$object = end($object);
+            //$object = rawurldecode($object);
+            $gs_url = "gs://$item->bucket/$item->name";
+            $this->gae_log(LOG_DEBUG, "check link: " . $gs_url);
+            $url = file_get_contents($gs_url);
+            $url = trim($url);
+            unlink($gs_url);
+
+            $this->gae_log(LOG_DEBUG, "check content link" . $url);
+
+            $headers = array('content-type: application/x-www-form-urlencoded');
+            $endpoint = 'http://35.200.161.162/helpers/md5-hash-and-size.php';
+            $payload = 'url=' . rawurlencode($url);
+            $curl_response = json_decode($this->set_curl($headers, $endpoint, $payload, 'POST', null), true);
+            $this->gae_log(LOG_DEBUG, "check responsse md5" . json_encode($curl_response));
+
+            if (empty($tsv_data)) $tsv_data[] = 'TsvHttpData-1.0';
+            $tsv_data[] = "$url\t{$curl_response['size']}\t{$curl_response['hash']}";
+        }
+        // return array urls-size-md5
+        return implode("\n", $tsv_data);
+
+    }
+
+    // Google API storage - Transfer URL to bucket
+    function transfer_urls_to_bucket($extraction)
+    {
+
+        //Refresh access token
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $refresh_token = $extraction['global']['google_storage_transfer']['refresh_token'];
+        $access_token = $this->get_access_token($client_id, $client_secret, $refresh_token);
+        $bucket = $extraction['global']['google_storage']['bucket'];
+
+        //Call headers
+        $headers = array('content-type: application/json', 'authorization : Bearer ' . $access_token);
+
+        //End point
+        $api_version = $extraction['global']['google_storage_transfer']['api_version'];
+        $endpoint = "https://storagetransfer.googleapis.com/$api_version/transferJobs";
+        $random = rand();
+
+        //Payload data
+        $payload = array(
+            'description' => $extraction['api']."-".$extraction['extraction_group'],
+            'projectId' => $extraction['global']['project'],
+            'transferSpec' =>
+                array(
+                    'httpDataSource' =>
+                        array(
+                            'listUrl' => "https://storage.googleapis.com/$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv?random=$random",
+                        ),
+                    'gcsDataSink' =>
+                        array(
+                            'bucketName' => $extraction['global']['google_storage']['bucket'],
+                        ),
+                    'transferOptions' =>
+                        array(
+                            'overwriteObjectsAlreadyExistingInSink' => true,
+                        ),
+                ),
+            'schedule' =>
+                array(
+                    'scheduleStartDate' =>
+                        array(
+                            'year' => (int)date("Y"),
+                            'month' => (int)date("m"),
+                            'day' => (int)date("d"),
+                        ),
+                    'scheduleEndDate' =>
+                        array(
+                            'year' => (int)date("Y"),
+                            'month' => (int)date("m"),
+                            'day' => (int)date("d"),
+                        ),
+                ),
+            'status' => 'ENABLED',
+        );
+        $this->gae_log(LOG_DEBUG, "transferjob payload" . json_encode($payload));
+
+        //CURL request
+        $response = $this->set_curl($headers, $endpoint, json_encode($payload), 'POST', null);
+        return json_decode($response);
+
+    }
+
+    // Google transfer status
+    function get_status_transfer_urls_to_bucket($extraction, $response)
+    {
+        //Refresh access token
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $refresh_token = $extraction['global']['google_storage_transfer']['refresh_token'];
+        $access_token = $this->get_access_token($client_id, $client_secret, $refresh_token);
+
+        //Call headers
+        $headers = array('Authorization: Bearer ' . $access_token, 'Accept: application/json');
+
+        //End point
+        $filter = '{"project_id" : "' . $extraction['global']['project'] . '", "job_names": ["' . $response->name . '"]}';
+        $filter = rawurlencode($filter);
+        $api_version = $extraction['global']['google_storage_transfer']['api_version'];
+        $endpoint = "https://content-storagetransfer.googleapis.com/$api_version/transferOperations?filter=$filter";
+
+        //CURL request
+        $response2 = $this->set_curl($headers, $endpoint, null, 'GET', null);
+        $this->gae_log(LOG_DEBUG, "response2-status:" . json_encode($response2));
+        $response2 = json_decode($response2);
+        return $response2->operations[0]->metadata->status;
+    }
+
+    // Recursive functions for retrieve enable status
+    function check_status_transfer_urls_to_bucket($extraction, $response)
+    {
+        $status = $this->get_status_transfer_urls_to_bucket($extraction, $response);
+
+        if ($status === 'IN_PROGRESS') {
+            sleep(5);
+            //$status = $this->get_status_transfer_urls_to_bucket($extraction, $response);
+            $this->live_log($extraction, Array("TRANSFER", $status));
+            return $this->check_status_transfer_urls_to_bucket($extraction, $response);
+        }
+        else if ($status === 'SUCCESS') {
+            $this->live_log($extraction, Array("TRANSFER", $status));
+            $this->gae_log(LOG_DEBUG, "TRANSFER - " . $status);
+            return $status;
+        }
+        else {
+            $this->live_log($extraction, Array("TRANSFER ERROR", $status));
+            $this->gae_log(LOG_DEBUG, "TRANSFER ERROR - " . $status);
+            return $status;
+        }
+    }
+
+    // Copy file into buckets
+    function storage_copy_object($extraction, $sourceBucket, $sourceObject, $destinationBucket, $destinationObject)
+    {
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json', 'Content-Type: application/json');
+        $version = $extraction['global']['google_storage']['api_version'];
+        $sourceBucket = rawurlencode($sourceBucket);
+        $sourceObject = rawurlencode($sourceObject);
+        $destinationBucket = rawurlencode($destinationBucket);
+        $destinationObject = rawurlencode($destinationObject);
+
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$sourceBucket/o/$sourceObject/copyTo/b/$destinationBucket/o/$destinationObject";
+        $response = $this->set_curl($headers, $endpoint, null, 'POST');
+        return json_decode($response);
+    }
+
+    // Remove file into buckets
+    function storage_delete_object($extraction, $bucket, $object)
+    {
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
+        $version = $extraction['global']['google_storage']['api_version'];
+        $bucket = rawurlencode($bucket);
+        $object = rawurlencode($object);
+
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$object";
+        $response = $this->set_curl($headers, $endpoint, null, 'DELETE');
+        // If successful, this method returns an empty response body.
+        return $response;
+    }
+
+    // Move file between buckets
+    function move_buckets_files($extraction, $search_str, $destination_folder = null)
+    {
+
+        $bucket = $extraction['global']['google_storage']['bucket'];
+
+        // copying transfer file to input folder
+        $this->gae_log(LOG_DEBUG, "search_str" . $search_str);
+        $response = $this->get_urls_to_transfer($extraction, $search_str);
+        $this->gae_log(LOG_DEBUG, "file_list_bucket" . json_encode($response));
+
+        foreach ($response->items as $item) {
+
+            $sourceObject = explode('/', $item->selfLink);
+            $sourceObject = end($sourceObject);
+            $sourceObject = rawurldecode($sourceObject);
+
+            $destinationObject = explode('/', $sourceObject);
+            $destinationObject = end($destinationObject);
+            $destinationObject = explode('EOF', $destinationObject);
+            $destinationObject = "$destination_folder/$destinationObject[0].csv";
+
+            $this->storage_copy_object($extraction, $bucket, $sourceObject, $bucket, $destinationObject);
+            $this->gae_log(LOG_DEBUG, "copying file:" . $destinationObject);
+
+        }
+
+        //deleting transfer files
+        $search_str = "storage.googleapis.com";
+        $response = $this->get_urls_to_transfer($extraction, $search_str);
+        foreach ($response->items as $item) {
+            $sourceObject = explode('/', $item->selfLink);
+            $sourceObject = end($sourceObject);
+            $sourceObject = rawurldecode($sourceObject);
+            $this->storage_delete_object($extraction, $bucket, $sourceObject);
+            $this->gae_log(LOG_DEBUG, "deleting: " . $item->selfLink);
+        }
+        // deleting tsv file
+        unlink("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv");
+
+    }
+
+    // Check and control error response between request for avoid continue
+    function check_n_control($response, $extraction) {
+        if (is_array($response)) {
+            $extraction['current']['error'] = true;
+            $extraction['current']['http_code'] = $response[0];
+            $extraction['current']['error_response'] = $response[1];
+            $extraction['current']['endpoint'] = $response[2];
+            $extraction['current']['info'] = $response[3];
+            $log_values = array(
+                "CURL ERROR",
+                $extraction['current']['http_code'],
+                $extraction['current']['endpoint'],
+                $extraction['current']['error_response'],
+                json_encode($extraction['current']['info']));
+            $this->live_log($extraction, $log_values);
+            return $extraction;
+        }
+        return $extraction;
+
+    }
+
 
 }
