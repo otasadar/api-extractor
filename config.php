@@ -2,10 +2,119 @@
 
 
 
-
 // Global settings at: global-config.php
 
+//GA accounts
 
+
+//     _____                        _       _   _
+//    / ____|     /\               | |     | | (_)
+//   | |  __     /  \   _ __   __ _| |_   _| |_ _  ___ ___ ___
+//   | | |_ |   / /\ \ | '_ \ / _` | | | | | __| |/ __/ __/ __|
+//   | |__| |_ / ____ \| | | | (_| | | |_| | |_| | (__\__ \__ \
+//     \_____(_)_/    \_\_| |_|\__,_|_|\__, |\__|_|\___|___/___/
+//                                      __/ |
+//                                     |___/
+//
+
+$jumeirah_account = array(
+    array('accountId' => '128959136', 'accountName' => 'Sephora UAE'),
+    array('accountId' => '158528139', 'accountName' => 'Sephora KSA')
+);
+
+
+//GA Reports
+
+array_push($extractions['items'], array(
+    'api' => 'ga',
+    'api_type' => 'google',
+    'extraction_group' => 'jumeirah_omd',
+    'extraction_name' => 'report1',
+    'file_name' => "ga_jumeirah_report1.csv",
+    'credential_email' => 'omduae@annalect.com',
+    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
+    'accountsData' => $jumeirah_account,
+    'project' => 'jumeirah_search_upload_gc',
+    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:goal4Completions,ga:goal6Completions,ga:goal10Completions,ga:uniquePurchases,ga:itemsPerPurchase,ga:revenuePerItem,ga:revenuePerTransaction',
+    'dimensions' => array(
+        array("name"=> "ga:sourceMedium"),
+        array("name"=> "ga:adwordsCustomerName"),
+        array("name"=> "ga:campaign"),
+        array("name"=> "ga:deviceCategory"),
+        array("name"=> "ga:date")),
+    'metrics' => array(
+        array("expression"=> "ga:goal4Completions"),
+        array("expression"=> "ga:goal6Completions"),
+        array("expression"=> "ga:goal10Completions"),
+        array("expression"=> "ga:uniquePurchases"),
+        array("expression"=> "ga:itemsPerPurchase"),
+        array("expression"=> "ga:revenuePerItem"),
+        array("expression"=> "ga:revenuePerTransaction")),
+    'filters' => '',
+    'pageSize' => '10000',
+    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
+));
+/*
+array_push($extractions['items'], array(
+    'api' => 'ga',
+    'api_type' => 'google',
+    'extraction_group' => 'jumeirah_omd',
+    'extraction_name' => 'report2',
+    'file_name' => "ga_jumeirah_report2.csv",
+    'credential_email' => 'omduae@annalect.com',
+    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
+    'accountsData' => $jumeirah_account,
+    'project' => 'jumeirah_search_upload_gc',
+    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:sessions,ga:percentNewSessions,ga:transactions,ga:itemQuantity,ga:transactionRevenue,ga:goal9Completions,ga:goal3Completions,ga:goal20Completions,ga:goal13Completions,ga:goal14Completions',
+    'dimensions' => array(
+        array("name"=> "ga:sourceMedium"),
+        array("name"=> "ga:adwordsCustomerName"),
+        array("name"=> "ga:campaign"),
+        array("name"=> "ga:deviceCategory"),
+        array("name"=> "ga:date")),
+    'metrics' => array(
+        array("expression"=> "ga:sessions"),
+        array("expression"=> "ga:percentNewSessions"),
+        array("expression"=> "ga:transactions"),
+        array("expression"=> "ga:itemQuantity"),
+        array("expression"=> "ga:transactionRevenue"),
+        array("expression"=> "ga:goal9Completions"),
+        array("expression"=> "ga:goal3Completions"),
+        array("expression"=> "ga:goal20Completions"),
+        array("expression"=> "ga:goal13Completions"),
+        array("expression"=> "ga:goal14Completions")),
+    'filters' => '',
+    'pageSize' => '10000',
+    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
+));
+
+array_push($extractions['items'], array(
+    'api' => 'ga',
+    'api_type' => 'google',
+    'extraction_group' => 'jumeirah_omd',
+    'extraction_name' => 'report3',
+    'file_name' => "ga_jumeirah_report3.csv",
+    'credential_email' => 'omduae@annalect.com',
+    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
+    'accountsData' => $jumeirah_account,
+    'project' => 'jumeirah_search_upload_gc',
+    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:impressions,ga:adClicks,ga:adCost',
+    'dimensions' => array(
+        array("name"=> "ga:sourceMedium"),
+        array("name"=> "ga:adwordsCustomerName"),
+        array("name"=> "ga:campaign"),
+        array("name"=> "ga:deviceCategory"),
+        array("name"=> "ga:date")),
+    'metrics' => array(
+        array("expression"=> "ga:impressions"),
+        array("expression"=> "ga:adClicks"),
+        array("expression"=> "ga:adCost")),
+    'filters' => '',
+    'pageSize' => '10000',
+    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
+));
+
+*/
 
 //
 //  ______             _                 _
@@ -15,6 +124,7 @@
 // | | | (_| | (_|  __/ |_) | (_) | (_) |   <
 // |_|  \__,_|\___\___|_.__/ \___/ \___/|_|\_\
 
+/*
 $phd_accounts_sample = array(
     array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
     array('accountId' => 'act_1691511334458362', 'accountName' => 'Al Futtaim - Honda'),
@@ -141,7 +251,7 @@ array_push($extractions['items'], array(
     'startDate' => $extractions['global']['facebook']['historic'],
     'endDate' => $extractions['global']['facebook']['yesterday']
 ));
-
+*/
 
 //       _          _                                 _
 //      / \      __| | __      __   ___    _ __    __| |  ___

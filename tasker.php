@@ -456,10 +456,9 @@ switch ($extraction['api']) {
             $log_values = Array(
                 $extraction['current']['accountId'],
                 $extraction['current']['accountName'],
-                $extraction['report'],
                 "START");
 
-            $extraction = $helpers->result_log($extraction, $log_values);
+            $extraction = $helpers->live_log($extraction, $log_values);
             $extraction = $helpers->check_access_token($extraction);
             $account_data = $ga->set_ga_request($extraction, null);
 
@@ -477,7 +476,7 @@ switch ($extraction['api']) {
                 $result,
                 mb_strlen($account_data));
             syslog(LOG_DEBUG, json_encode($log_values));
-            $extraction = $helpers->result_log($extraction, $log_values);
+            $extraction = $helpers->live_log($extraction, $log_values);
 
         }
 

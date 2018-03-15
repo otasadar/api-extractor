@@ -74,7 +74,7 @@ class ga
 
             //JSON to CSV next pages
             while (true) {
-                if ($report['nextPageToken']) {
+                if (isset($report['nextPageToken'])) {
                     $report_paginate = $this->set_ga_request($extraction, $report['nextPageToken']);
                     $report = json_decode($report_paginate, true)['reports'][0];
                     $csv = $csv . $this->json_to_csv_paginate($report);

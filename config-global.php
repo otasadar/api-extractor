@@ -89,5 +89,10 @@ $extractions['global']['dbm']['today'] = date('Y-m-d'); // 2018-01-24
 $extractions['global']['dbm']['yesterday'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['dbm']['today'])) . " -1 day"));
 $extractions['global']['dbm']['historic'] = '2017-06-01';
 
+$extractions['global']['ga']['api_version'] = 'v4';
+$extractions['global']['ga']['today'] = date('Y-m-d'); // 2018-01-24
+$extractions['global']['ga']['yesterday'] = date("Y-m-d",  strtotime(date("Y-m-d", strtotime($extractions['global']['ga']['today'] )) . " -1 day") );
+$extractions['global']['ga']['last_6months'] = date("Y-m-d",  strtotime(date("Y-m-d", strtotime($extractions['global']['ga']['today'] )) . " -6 month") );
+
 $extractions['global']['date']['today'] = date('Y-m-d'); // 2018-01-24
 $extractions['global']['date']['yesterday'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['date']['today'])) . " -1 day"));

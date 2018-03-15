@@ -409,12 +409,17 @@ class helpers
     function live_log($extraction, $row)
     {
         $now = new DateTime();
+        if (isset($extraction['report_type'])) {
+            $report_type = $extraction['report_type'];
+        } else {
+            $report_type = 'N/A';
+        }
         array_unshift($row,
             $now->format('d-m-Y'),
             $now->format('H:i:s'),
             $extraction['api'],
             $extraction['task_name'],
-            $extraction['report_type']);
+            $report_type);
         $extraction = $this->check_access_token($extraction, 'sheets');
         $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
         $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);

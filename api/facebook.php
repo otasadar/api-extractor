@@ -242,7 +242,7 @@ class facebook
                             foreach ($actionsArray as $action_value) {
                                 //
                                 //$log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'async', $action_value);
-                                //$helpers->result_log($extraction, $log_values);
+                                //$helpers->live_log($extraction, $log_values);
                                 //
                                 $outputArray[] = $action_value;
                             }
