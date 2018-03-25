@@ -1,8 +1,8 @@
 <?php
 
 // Active example
-// https://api-extractor-staging-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=start
-// https://api-extractor-staging-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=stop
+// https://api-extractor-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=start
+// https://api-extractor-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=stop
 
 use google\appengine\api\log\LogService;
 include_once __DIR__ . '/api/helpers.php';

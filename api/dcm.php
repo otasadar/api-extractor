@@ -209,7 +209,7 @@ class dcm
     function get_report_url_content($api_response, $extraction)
     {
 
-        $log_values = Array("original CSV : {$extraction['file_name']} " . $api_response->urls->browserUrl);
+        $log_values = Array("original CSV : " . $api_response->urls->browserUrl);
         $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
 
         $url = $api_response->urls->apiUrl;

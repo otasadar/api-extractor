@@ -21,6 +21,7 @@ application/logs/*
 #-------------------------
 /nbproject/
 .idea/*
+.tmp.drivedownload/*
 
 ## Sublime Text cache files
 *.tmlanguage.cache
@@ -40,3 +41,4 @@ application/logs/*
 /batch.yaml
 /assets/codemirror/
 /alex/
+/.tmp.drivedownload/

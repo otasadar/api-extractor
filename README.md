@@ -43,6 +43,54 @@ Futures tasks
  - Check ID duplicated
  - add message when timeout
  - remove profiles id duplicates in config file
+ - https://github.com/jdorn/json-editor
+ 
+ API extractions methodologies
+ 
+ - DCM (Async results)
+    - Create file with header 
+    - API request for validate id's are valid
+    - API request for create a report ( could be auto-schedule )
+    - API request for run report
+    - API request for check status, if it's done return an URL 
+    - API request for download CSV URL (require token), and redirect to final URL
+    - Append download content to final one, for avoid load all data in memory
+     
+ - DS (Sync / Async results)
+     - Create file with header 
+     - API request for create and run a report ( could be autorefresh )
+     - API request for check status, if it's done return an CSV URL ( also could return data with other requests) 
+     - Download URL (not require token)
+     - Append download content to final one, for avoid load all data in memory
+     
+ - DBM (Async results)
+
+   - API request for create a report ( could be auto-schedule )
+   - API request for check status, if it's done return CSV URL 
+   - URL content could be huge (Gb)
+   - Transfer URL data to bucket, using VM for get MD5, using Google Transfer API
+   
+  - Adwords (sync results)
+    - Create file with header 
+    - API request, return data in response as xml
+    - Convert XML to CSV create tmp file
+    - Append tmp file to final one
+    
+  - Facebook (sync results)
+    - API request, return data in response as json
+    - Convert json to CSV create tmp file
+    - Append tmp file to final one 
+
+  - Google Analytics (sync results)
+    - API request, return data in response as json
+    - Convert json to CSV and create tmp file
+    - Append tmp file to final one  
+     
+   - Yandex (sync results)
+     - API request, return data in response as json
+     - Convert json to CSV and create tmp file
+     - Append tmp file to final one  
+    
  
  
  

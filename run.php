@@ -1,6 +1,6 @@
 <?php
 
-$bucket = "api-extractor-staging";
+$bucket = "annalect-dashboarding";
 
 
 ini_set('display_errors', 1);
@@ -47,6 +47,12 @@ if (isset($_POST['code'])) {
 
 
 eval($config_global.$code);
+
+if (!isset($extractions['items']))  {
+    echo "Saved config file, but there is no extractions to process";
+    die;
+}
+
 
 $i = 0;
 foreach ($extractions['items'] as $key => $extraction) {

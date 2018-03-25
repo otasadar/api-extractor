@@ -1,6 +1,6 @@
 <?php
 
-$bucket = "api-extractor-staging";
+$bucket = "annalect-dashboarding";
 
 require_once __DIR__ . '/api/helpers.php';
 $helpers = new helpers();
@@ -81,7 +81,7 @@ $config_files = json_decode($response);
         </div>
 
         <div class="row">
-            <p><a href="https://docs.google.com/spreadsheets/d/1oUslYYAHVtqTwqUSHsPXkXH4EDNC-JGiXPQQAiyrQc0/edit#gid=0"
+            <p><a href="https://docs.google.com/spreadsheets/d/<?php echo $extractions['global']['google_sheet']['sheet_id'];?>/edit#gid=0"
                   target="_blank">Real Time log</a></p>
         </div>
 
