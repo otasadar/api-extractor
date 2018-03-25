@@ -1,38 +1,145 @@
-<?php
-
 
 
 // Global settings at: global-config.php
+// https://tech.yandex.com/direct/doc/ref-v5/campaigns/get-docpage/
+// YANDEX
+/*
+
+
+//    __   __              _           
+//    \ \ / /_ _ _ __   __| | _____  __
+//     \ V / _` | '_ \ / _` |/ _ \ \/ /
+//      | | (_| | | | | (_| |  __/>  < 
+//      |_|\__,_|_| |_|\__,_|\___/_/\_\
+                                  
+array_push($extractions['items'], array(
+    'api' => 'yandex',
+    'api_type' => 'yandex',
+    'extraction_group' => 'omd-jumeirah',
+    'extraction_name' => 'campaigns-1',
+    'report_type' => "campaigns",
+    'credential_email' => 'unknown',
+    'refresh_token' => "ARcmuAAAAypgoIpncjMnTqeAd6tAnP4rUA", //permanent token
+    'startDate' => "2017-01-01",
+    'endDate' => "2017-12-31",
+    'accountsData' => array(
+        array("clientLogin "=>"jumeirahrussia")
+    ),
+    'report_header' => 'advertiser,accountType,campaign,campaignId,clicks,cost,impr,date,deviceSegment',
+    'json_request' => '{
+        "downloadFormat":"csv",
+        "maxRowsPerFile": 1000000,
+        "reportType":"campaign",
+        "statisticsCurrency":"usd",
+        "columns": [{"columnName":"advertiser"},
+        {"columnName":"accountType"},
+        {"columnName":"campaign"},
+        {"columnName":"campaignId"},
+        {"columnName":"clicks"},
+        {"columnName":"cost"},
+        {"columnName":"impr"},
+        {"columnName":"date"},
+        {"columnName":"deviceSegment"}],
+        "reportScope": {"agencyId":"20700000001079548"},
+        "timeRange": {"startDate":"2018-03-01", "endDate":"2018-03-01"}
+    }'
+));
+
+
+{
+"params": {
+"SelectionCriteria": {
+"Filter": [{
+"Field": "CampaignId",
+"Operator": "IN",
+"Values": [ "10002", "10007" ]
+}]
+},
+"FieldNames": [ "Date", "CampaignId", "Clicks", "Cost" ],
+"OrderBy": [{
+"Field": "Date"
+}],
+"ReportName": "Actual Data",
+"ReportType": "CAMPAIGN_PERFORMANCE_REPORT",
+"DateRangeType": "AUTO",
+"Format": "TSV",
+"IncludeVAT": "YES",
+"IncludeDiscount": "YES"
+}
+}
+*/
+
+
+//     ____  ____  
+//    |  _ \/ ___| 
+//    | | | \___ \ 
+//    | |_| |___) |
+//    |____/|____/ 
+              
+
+/*
+array_push($extractions['items'], array(
+    'api' => 'ds',
+    'api_type' => 'google',
+    'extraction_group' => 'omd-jumeirah',
+    'extraction_name' => 'ds-cmp',
+    'report_type' => "campaign",
+    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
+    'refresh_token' => "1/SzshmFTmTYBoFJzOpjw2f1hVfK_Ch6pBIdxg3f0VoZU",
+    'startDate' => "2017-01-01",
+    'endDate' => "2017-12-31",
+    'accountsData' => array(
+        array("agencyId"=>"20700000001079548", "agencyName"=>"Jumeirah OMG DS UAE - AED")
+    ),
+    'report_header' => 'advertiser,accountType,campaign,campaignId,clicks,cost,impr,date,deviceSegment',
+    'json_request' => '{
+        "downloadFormat":"csv",
+        "maxRowsPerFile": 1000000,
+        "reportType":"campaign",
+        "statisticsCurrency":"usd",
+        "columns": [{"columnName":"advertiser"},
+        {"columnName":"accountType"},
+        {"columnName":"campaign"},
+        {"columnName":"campaignId"},
+        {"columnName":"clicks"},
+        {"columnName":"cost"},
+        {"columnName":"impr"},
+        {"columnName":"date"},
+        {"columnName":"deviceSegment"}],
+        "reportScope": {"agencyId":"20700000001079548"},
+        "timeRange": {"startDate":"2018-03-01", "endDate":"2018-03-01"}
+    }'
+));
+*/
+
+
 
 //GA accounts
 
 
-//     _____                        _       _   _
-//    / ____|     /\               | |     | | (_)
-//   | |  __     /  \   _ __   __ _| |_   _| |_ _  ___ ___ ___
-//   | | |_ |   / /\ \ | '_ \ / _` | | | | | __| |/ __/ __/ __|
-//   | |__| |_ / ____ \| | | | (_| | | |_| | |_| | (__\__ \__ \
-//     \_____(_)_/    \_\_| |_|\__,_|_|\__, |\__|_|\___|___/___/
-//                                      __/ |
-//                                     |___/
-//
+//      ____      _                _       _   _          
+//     / ___|    / \   _ __   __ _| |_   _| |_(_) ___ ___ 
+//    | |  _    / _ \ | '_ \ / _` | | | | | __| |/ __/ __|
+//    | |_| |_ / ___ \| | | | (_| | | |_| | |_| | (__\__ \
+//     \____(_)_/   \_\_| |_|\__,_|_|\__, |\__|_|\___|___/
+//                                   |___/                
 
+
+/*
 $jumeirah_account = array(
-    array('accountId' => '128959136', 'accountName' => 'Sephora UAE'),
-    array('accountId' => '158528139', 'accountName' => 'Sephora KSA')
+    array('accountId' => '1295942', 'propertyId' => 'UA-1295942-16', 'viewId' => '96072017', 'viewName' => 'J.com - group level - _main view')
 );
 
 
-//GA Reports
 
 array_push($extractions['items'], array(
     'api' => 'ga',
     'api_type' => 'google',
-    'extraction_group' => 'jumeirah_omd',
+    'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report1',
     'file_name' => "ga_jumeirah_report1.csv",
-    'credential_email' => 'omduae@annalect.com',
-    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
+    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
+    'refresh_token' => '1/eV7uEWf1jd-LqO1gC4RSmq6zlv93kVQ9fqvDLHrCtWY4ahlmxr8gwn-x3kuAl2q2',
     'accountsData' => $jumeirah_account,
     'project' => 'jumeirah_search_upload_gc',
     'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:goal4Completions,ga:goal6Completions,ga:goal10Completions,ga:uniquePurchases,ga:itemsPerPurchase,ga:revenuePerItem,ga:revenuePerTransaction',
@@ -54,14 +161,15 @@ array_push($extractions['items'], array(
     'pageSize' => '10000',
     'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
 ));
-/*
+
+
 array_push($extractions['items'], array(
     'api' => 'ga',
     'api_type' => 'google',
-    'extraction_group' => 'jumeirah_omd',
+    'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report2',
     'file_name' => "ga_jumeirah_report2.csv",
-    'credential_email' => 'omduae@annalect.com',
+    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
     'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
     'accountsData' => $jumeirah_account,
     'project' => 'jumeirah_search_upload_gc',
@@ -91,10 +199,10 @@ array_push($extractions['items'], array(
 array_push($extractions['items'], array(
     'api' => 'ga',
     'api_type' => 'google',
-    'extraction_group' => 'jumeirah_omd',
+    'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report3',
     'file_name' => "ga_jumeirah_report3.csv",
-    'credential_email' => 'omduae@annalect.com',
+    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
     'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
     'accountsData' => $jumeirah_account,
     'project' => 'jumeirah_search_upload_gc',
@@ -116,15 +224,18 @@ array_push($extractions['items'], array(
 
 */
 
-//
-//  ______             _                 _
-// |  ____|           | |               | |
-// | |__ __ _  ___ ___| |__   ___   ___ | | __
-// |  __/ _` |/ __/ _ \ '_ \ / _ \ / _ \| |/ /
-// | | | (_| | (_|  __/ |_) | (_) | (_) |   <
-// |_|  \__,_|\___\___|_.__/ \___/ \___/|_|\_\
 
-/*
+
+
+
+
+//     _____              _                 _    
+//    |  ___|_ _  ___ ___| |__   ___   ___ | | __
+//    | |_ / _` |/ __/ _ \ '_ \ / _ \ / _ \| |/ /
+//    |  _| (_| | (_|  __/ |_) | (_) | (_) |   < 
+//    |_|  \__,_|\___\___|_.__/ \___/ \___/|_|\_\
+//
+
 $phd_accounts_sample = array(
     array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
     array('accountId' => 'act_1691511334458362', 'accountName' => 'Al Futtaim - Honda'),
@@ -237,11 +348,11 @@ array_push($extractions['items'], array(
     'api' => 'facebook',
     'api_type' => 'facebook',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'all',
+    'extraction_name' => 'facebook_all',
     'file_name' => "facebook_all.csv",
     'credential_email' => 'jpujolardevol@gmail.com',
     'report_type' => "n/a",
-    'accountsData' => $phd_accounts_sample,
+    'accountsData' => $phd_accounts_data,
     'metrics' => 'campaign_name,campaign_id,adset_name,ad_name,frequency,clicks,spend,actions,impressions,cost_per_action_type,reach,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers',
     'report_header' => 'campaign_name,campaign_id,adset_name,ad_name,frequency,clicks,spend,actions,action_complete_registration,action_credit_spent,action_link_click,action_offsite_conversion.fb_pixel_complete_registration,action_offsite_conversion.fb_pixel_lead,action_offsite_conversion.fb_pixel_purchase,action_page_engagement,action_post_engagement,action_video_view,impressions,cost_per_action_type,action_cost_leadgen.other,action_cost_like,action_cost_mobile_app_install,action_cost_offsite_conversion,action_cost_post_engagement,action_cost_video_view,reach,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers,date_start,date_stop,publisher_platform',
     'actions'  => 'complete_registration,credit_spent,link_click,offsite_conversion.fb_pixel_complete_registration,offsite_conversion.fb_pixel_lead,offsite_conversion.fb_pixel_purchase,page_engagement,post_engagement,video_view',
@@ -251,15 +362,20 @@ array_push($extractions['items'], array(
     'startDate' => $extractions['global']['facebook']['historic'],
     'endDate' => $extractions['global']['facebook']['yesterday']
 ));
-*/
-
-//       _          _                                 _
-//      / \      __| | __      __   ___    _ __    __| |  ___
-//     / _ \    / _` | \ \ /\ / /  / _ \  | '__|  / _` | / __|
-//    / ___ \  | (_| |  \ V  V /  | (_) | | |    | (_| | \__ \
-//   /_/   \_\  \__,_|   \_/\_/    \___/  |_|     \__,_| |___/
 
 
+
+
+
+
+
+
+//        _       ___        __            _     
+//       / \   __| \ \      / /__  _ __ __| |___ 
+//      / _ \ / _` |\ \ /\ / / _ \| '__/ _` / __|
+//     / ___ \ (_| | \ V  V / (_) | | | (_| \__ \
+//    /_/   \_\__,_|  \_/\_/ \___/|_|  \__,_|___/
+                                            
 $phd_accounts_sample = array(
     array('accountId' => '100-624-9592', 'accountName' => 'AFGRE'),
     array('accountId' => '324-299-8908', 'accountName' => 'Al Futtaim Automall'),
@@ -449,7 +565,7 @@ $phd_accounts_data_search = array(
 
 );
 
-/*
+
 // AIO [PHD - Ad]
 array_push($extractions['items'], array(
 
@@ -460,7 +576,7 @@ array_push($extractions['items'], array(
     'file_name' => "adwords_ad.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_sample,
+    'accountsData' => $phd_accounts_data_display,
     'report_type' => 'AD_PERFORMANCE_REPORT',
     'metrics' => 'Date,AccountDescriptiveName,CreativeFinalUrls,AdGroupName,AverageCpv,CampaignName,Clicks,Cost,Ctr,Headline,Impressions,VideoQuartile100Rate,VideoViews',
     'startDate' => $extractions['global']['adwords']['historic'],
@@ -474,7 +590,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-adwords_cmp1',
+    'extraction_name' => 'adwords_campaign1',
     'file_name' => "adwords_campaign1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -492,7 +608,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-adwords_cmp2',
+    'extraction_name' => 'adwords_campaign2',
     'file_name' => "adwords_campaign2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -510,7 +626,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-phd_cmp3',
+    'extraction_name' => 'adwords_campaign3',
     'file_name' => "adwords_campaign3.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -528,7 +644,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-phd_cmp4',
+    'extraction_name' => 'adwords_campaign4',
     'file_name' => "adwords_campaign4.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -545,7 +661,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-phd_cmp5',
+    'extraction_name' => 'adwords_campaign5',
     'file_name' => "adwords_campaign5.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -563,7 +679,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-phd_campaign1',
+    'extraction_name' => 'adwords_search1',
     'file_name' => "adwords_search1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -579,7 +695,7 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'aio_phd-phd_campaign2',
+    'extraction_name' => 'adwords_search2',
     'file_name' => "adwords_search2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
@@ -590,23 +706,22 @@ array_push($extractions['items'], array(
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
 
-*/
 
 
 
-//
-//  / ___|  | |_    __ _   _ __     __| |   __ _   _ __    __| |
-//  \___ \  | __|  / _` | | '_ \   / _` |  / _` | | '__|  / _` |
-//   ___) | | |_  | (_| | | | | | | (_| | | (_| | | |    | (_| |
-//  |____/   \__|  \__,_| |_| |_|  \__,_|  \__,_| |_|     \__,_|
-//
-//
-/*
+
+//     ____   ____ __  __           ____  _      _ 
+//    |  _ \ / ___|  \/  |         / ___|| |_ __| |
+//    | | | | |   | |\/| |  _____  \___ \| __/ _` |
+//    | |_| | |___| |  | | |_____|  ___) | || (_| |
+//    |____/ \____|_|  |_|         |____/ \__\__,_|
+                                              
 $phd_sample = array(
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
     array('profileId' => '4341639', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon - MENA ', 'advertiserId' => '6927278'),
     array('profileId' => '4341639', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon Middle East OLD ', 'advertiserId' => '2376384'),
 );
+
 $phd_account_data_std_cross = array(
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
     array('profileId' => '4385849', 'networkName' => 'Alshaya CRM & Digital', 'advertiserName' => 'Mothercare Kuwait', 'advertiserId' => '8395950'),
@@ -677,8 +792,8 @@ $phd_account_data_std_cross = array(
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Unilever', 'advertiserId' => '4448401'),
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Abu Dhabi Film Festival (ADFF) ', 'advertiserId' => '3824854'),
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'All About Brands', 'advertiserId' => '4854554'),
-
 );
+
 $phd_account_data_flood = array(
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'floodlightConfigId' => '5912534'),
     array('profileId' => '4368959', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Lurpak ', 'floodlightConfigId' => '5449796'),
@@ -713,87 +828,83 @@ $phd_account_data_flood = array(
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'TDIC', 'floodlightConfigId' => '3047713'),
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'Unilever', 'floodlightConfigId' => '4448401'),
     array('profileId' => '4342696', 'networkName' => 'PHD UAE - DFA EMEA', 'advertiserName' => 'All About Brands', 'floodlightConfigId' => '4854554'),
-
 );
 
-
-// histo phduae@annalect.com
 
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'standard',
+    'extraction_name' => 'dcm_standard',
     'report_type' => "STANDARD",
     'max_execution_sec' => 3600,
     'file_name' => "dcm_standard.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
-    'accountsData' => $phd_sample,
+    'accountsData' => $phd_account_data_std_cross,
     'report_header' => "profileId,Campaign,Site (DCM),Placement,Creative Pixel Size,Advertiser,Advertiser ID,Activity,Placement Cost Structure,Booked Impressions,Booked Clicks,Planned Media Cost,Impressions,Clicks,Media Cost,Total Interactions,Interaction Rate,Video Plays,Video Completions",
     'json_request' => '{
-"name": "test alex",
-"type": "STANDARD",
+        "name": "test alex",
+        "type": "STANDARD",
 
-"schedule": {
-"active": false,
-"expirationDate": "2018-01-25",
-"repeats": "MONTHLY",
-"startDate": "2018-01-25",
-"runsOnDayOfMonth": "DAY_OF_MONTH",
-"every": 12
-},
-"criteria": {
-"dateRange": {
-"startDate": "2017-06-01",
-"endDate": "YESTERDAY"
-},
-"dimensions": [
-{"name": "dfa:campaign"},
-{"name": "dfa:site"},
-{"name": "dfa:placement"},
-{"name": "dfa:creativeSize"},
-{"name": "dfa:advertiser"},
-{"name": "dfa:advertiserId"},
-{"name": "dfa:activity"},
-{"name": "dfa:placementCostStructure"}
-],
-"metricNames": [
-"dfa:bookedImpressions",
-"dfa:bookedClicks",
-"dfa:plannedMediaCost",
-"dfa:impressions",
-"dfa:clicks",
-"dfa:mediaCost",
-"dfa:richMediaInteractions",
-"dfa:richMediaInteractionRate",
-"dfa:richMediaVideoPlays",
-"dfa:richMediaVideoCompletions"
-],
-"dimensionFilters": [
-{
-"dimensionName": "dfa:advertiser",
-"id": "4743311"
-},
-{
-"dimensionName": "dfa:advertiser",
-"id": "4636880"
-}
-]
-}
-}'
+        "schedule": {
+        "active": false,
+        "expirationDate": "2018-01-25",
+        "repeats": "MONTHLY",
+        "startDate": "2018-01-25",
+        "runsOnDayOfMonth": "DAY_OF_MONTH",
+        "every": 12
+        },
+        "criteria": {
+        "dateRange": {
+        "startDate": "2017-06-01",
+        "endDate": "YESTERDAY"
+        },
+        "dimensions": [
+        {"name": "dfa:campaign"},
+        {"name": "dfa:site"},
+        {"name": "dfa:date"},        
+        {"name": "dfa:placement"},
+        {"name": "dfa:creativeSize"},
+        {"name": "dfa:advertiser"},
+        {"name": "dfa:advertiserId"},
+        {"name": "dfa:activity"},
+        {"name": "dfa:placementCostStructure"}
+        ],
+        "metricNames": [
+        "dfa:bookedImpressions",
+        "dfa:bookedClicks",
+        "dfa:plannedMediaCost",
+        "dfa:impressions",
+        "dfa:clicks",
+        "dfa:mediaCost",
+        "dfa:richMediaInteractions",
+        "dfa:richMediaInteractionRate",
+        "dfa:richMediaVideoPlays",
+        "dfa:richMediaVideoCompletions"
+        ],
+        "dimensionFilters": [
+        {
+        "dimensionName": "dfa:advertiser",
+        "id": "4743311"
+        },
+        {
+        "dimensionName": "dfa:advertiser",
+        "id": "4636880"
+        }
+        ]
+        }
+        }'
 ));
 
 
-//   _____   _                       _   _   _           _       _
-//  |  ___| | |   ___     ___     __| | | | (_)   __ _  | |__   | |_
-//  | |_    | |  / _ \   / _ \   / _` | | | | |  / _` | | '_ \  | __|
-//  |  _|   | | | (_) | | (_) | | (_| | | | | | | (_| | | | | | | |_
-//  |_|     |_|  \___/   \___/   \__,_| |_| |_|  \__, | |_| |_|  \__|
-//                                               |___/
 
-
-// histo phduae@annalect.com
+//      ____   ____ __  __           _____ _                 _ 
+//     |  _ \ / ___|  \/  |         |  ___| | ___   ___   __| |
+//     | | | | |   | |\/| |  _____  | |_  | |/ _ \ / _ \ / _` |
+//     | |_| | |___| |  | | |_____| |  _| | | (_) | (_) | (_| |
+//     |____/ \____|_|  |_|         |_|   |_|\___/ \___/ \__,_|
+//                                                             
 
 array_push($extractions['items'], array(
     'api' => 'dcm',
@@ -808,60 +919,55 @@ array_push($extractions['items'], array(
     'accountsData' => $phd_account_data_flood,
     'report_header' => "profileId,Campaign,Site (DCM),Placement,Creative Pixel Size,Advertiser,Advertiser ID,Campaign ID,Date,Floodlight Configuration,Activity,Activity ID,Click-through Conversions,View-through Conversions,Total Conversions",
     'json_request' => '{
-"name": "test alex",
-"type": "FLOODLIGHT",
+        "name": "test alex",
+        "type": "FLOODLIGHT",
 
-"schedule": {
-"active": false,
-"expirationDate": "2018-01-24",
-"repeats": "MONTHLY",
-"startDate": "2018-01-24",
-"runsOnDayOfMonth": "DAY_OF_MONTH",
-"every": 12
-},
-"floodlightCriteria": {
-"dateRange": {
-"startDate": "2017-06-01",
-"endDate": "YESTERDAY"
-},
-"dimensions": [
-{"name": "dfa:campaign"},
-{"name": "dfa:site"},
-{"name": "dfa:placement"},
-{"name": "dfa:creativeSize"},
-{"name": "dfa:advertiser"},
-{"name": "dfa:advertiserId"},
-{"name": "dfa:campaignId"},
-{"name": "dfa:date"},
-{"name": "dfa:floodlightConfigId"},
-{"name": "dfa:activity"},
-{"name": "dfa:activityId"}
-],
-"metricNames": [
-"dfa:activityClickThroughConversions",
-"dfa:activityViewThroughConversions",
-"dfa:totalConversions"
-],
-"floodlightConfigId": {
-"value": "123456",
-"dimensionName": "dfa:floodlightConfigId"
-}
-}
-}'
+        "schedule": {
+        "active": false,
+        "expirationDate": "2018-01-24",
+        "repeats": "MONTHLY",
+        "startDate": "2018-01-24",
+        "runsOnDayOfMonth": "DAY_OF_MONTH",
+        "every": 12
+        },
+        "floodlightCriteria": {
+        "dateRange": {
+        "startDate": "2017-06-01",
+        "endDate": "YESTERDAY"
+        },
+        "dimensions": [
+        {"name": "dfa:campaign"},
+        {"name": "dfa:site"},
+        {"name": "dfa:placement"},
+        {"name": "dfa:creativeSize"},
+        {"name": "dfa:advertiser"},
+        {"name": "dfa:advertiserId"},
+        {"name": "dfa:campaignId"},
+        {"name": "dfa:date"},
+        {"name": "dfa:floodlightConfigId"},
+        {"name": "dfa:activity"},
+        {"name": "dfa:activityId"}
+        ],
+        "metricNames": [
+        "dfa:activityClickThroughConversions",
+        "dfa:activityViewThroughConversions",
+        "dfa:totalConversions"
+        ],
+        "floodlightConfigId": {
+        "value": "123456",
+        "dimensionName": "dfa:floodlightConfigId"
+        }
+        }
+        }'
 ));
 
 
-//
-//     ____                                ____    _                                    _
-//    / ___|  _ __    ___    ___   ___    |  _ \  (_)  _ __ ___     ___   _ __    ___  (_)   ___    _ __
-//   | |     | '__|  / _ \  / __| / __|   | | | | | | | '_ ` _ \   / _ \ | '_ \  / __| | |  / _ \  | '_ \
-//   | |___  | |    | (_) | \__ \ \__ \   | |_| | | | | | | | | | |  __/ | | | | \__ \ | | | (_) | | | | |
-//    \____| |_|     \___/  |___/ |___/   |____/  |_| |_| |_| |_|  \___| |_| |_| |___/ |_|  \___/  |_| |_|
-//
-
-
-// histo phduae@annalect.com
-
+//       ____   ____ __  __            ____                   
+//      |  _ \ / ___|  \/  |          / ___|_ __ ___  ___ ___ 
+//      | | | | |   | |\/| |  _____  | |   | '__/ _ \/ __/ __|
+//      | |_| | |___| |  | | |_____| | |___| | | (_) \__ \__ \
+//      |____/ \____|_|  |_|          \____|_|  \___/|___/___/
+                                                       
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
@@ -875,83 +981,69 @@ array_push($extractions['items'], array(
     'accountsData' => $phd_account_data_std_cross,
     'report_header' => "AdvertiserId,Advertiser,Campaign,Date,Exclusive Click Reach,Exclusive Impression Reach,",
     'json_request' => '{
-"name": "test alex",
-"type": "CROSS_DIMENSION_REACH",
+        "name": "test alex",
+        "type": "CROSS_DIMENSION_REACH",
 
-"schedule": {
-"active": false,
-"expirationDate": "2018-01-24",
-"repeats": "MONTHLY",
-"startDate": "2018-01-24",
-"runsOnDayOfMonth": "DAY_OF_MONTH",
-"every": 12
-},
-"crossDimensionReachCriteria": {
-"dateRange": {
-"startDate": "2017-06-01",
-"endDate": "YESTERDAY"
-},
-"metricNames": [
-"dfa:cookieReachClickReach",
-"dfa:cookieReachImpressionReach"
-],
-"dimension": "CAMPAIGN",
-"breakdown": [
-{
-"name": "dfa:date",
-"kind": "dfareporting#sortedDimension"
-}
-],
-"overlapMetricNames": [
-"dfa:cookieReachOverlapClickReach"
-],
-"dimensionFilters": [
-{
-"dimensionName": "dfa:advertiser",
-"matchType": "EXACT",
-"id": "4743311"
-}
-]
-}
-}'
-));
-*/
-
-
-
-
-
-
-
-
-//     _____   ______  ______
-//    (____ \ (____  \|  ___ \
-//     _   \ \ ____)  ) | _ | |
-//    | |   | |  __  (| || || |
-//    | |__/ /| |__)  ) || || |
-//    |_____/ |______/|_||_||_|
-
-
-/*
-    'credential_email' => 'annalectautomation@gmail.com',
-    'refresh_token' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo',
-
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
-
-        "metadata": {
-            "title": "xyz",
-            "dataRange": "CUSTOM_DATES",
-            "format": "CSV",
-            "sendNotification": false
+        "schedule": {
+        "active": false,
+        "expirationDate": "2018-01-24",
+        "repeats": "MONTHLY",
+        "startDate": "2018-01-24",
+        "runsOnDayOfMonth": "DAY_OF_MONTH",
+        "every": 12
         },
-        "reportDataStartTimeMs": "1496260800000",
-        "reportDataEndTimeMs": "1519502400000",
+        "crossDimensionReachCriteria": {
+        "dateRange": {
+        "startDate": "2017-06-01",
+        "endDate": "YESTERDAY"
+        },
+        "metricNames": [
+        "dfa:cookieReachClickReach",
+        "dfa:cookieReachImpressionReach"
+        ],
+        "dimension": "CAMPAIGN",
+        "breakdown": [
+        {
+        "name": "dfa:date",
+        "kind": "dfareporting#sortedDimension"
+        }
+        ],
+        "overlapMetricNames": [
+        "dfa:cookieReachOverlapClickReach"
+        ],
+        "dimensionFilters": [
+        {
+        "dimensionName": "dfa:advertiser",
+        "matchType": "EXACT",
+        "id": "4743311"
+        }
+        ]
+        }
+        }'
+));
 
 
- */
 
-/*
+
+
+
+
+
+
+//     ____  ____  __  __ 
+//    |  _ \| __ )|  \/  |
+//    | | | |  _ \| |\/| |
+//    | |_| | |_) | |  | |
+//    |____/|____/|_|  |_|
+
+
+
+//    'credential_email' => 'annalectautomation@gmail.com',
+//    'refresh_token' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo',
+//    'credential_email' => 'phduae@annalect.com',
+//    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
+
+
 // Basic - Partner Accuen
 array_push($extractions['items'], array(
     'api' => 'dbm',
@@ -1112,12 +1204,15 @@ array_push($extractions['items'], array(
       }'
 ));
 
-*/
+
 
 
 /*
 
-// Cookie Reach
+// COOKIE REACH
+// Extra reports not for AIO
+// Test if works for whole year
+
 array_push($extractions['items'], array(
     'api' => 'dbm',
     'api_type' => 'google',
@@ -1156,10 +1251,10 @@ array_push($extractions['items'], array(
       }'
 ));
 
-
-// Audience
-
+// AUDIENCE
+// Extra reports not for AIO
 // Test if works for whole year
+
 array_push($extractions['items'], array(
     'api' => 'dbm',
     'api_type' => 'google',
@@ -1198,4 +1293,4 @@ array_push($extractions['items'], array(
       }'
 ));
 
- */
+*/

@@ -7,6 +7,7 @@ include __DIR__ . '/api/helpers.php';
 include __DIR__ . '/api/adwords.php';
 include __DIR__ . '/api/dcm.php';
 include __DIR__ . '/api/dbm.php';
+include __DIR__ . '/api/ds.php';
 include __DIR__ . '/api/facebook.php';
 include __DIR__ . '/api/ga.php';
 
@@ -14,13 +15,13 @@ $helpers = new helpers();
 $adwords = new adwords();
 $dcm = new dcm();
 $dbm = new dbm();
+$ds = new ds();
 $facebook = new facebook();
 $ga = new ga();
 
 $extraction = $_POST['extraction'];
 $extraction['csv_output'] = '';// Temporal container for reports
 $extraction['reportsData'] = '';// Clone of accountData + extra information from API requests
-$extraction['file_name_tpl'] = $extraction['file_name']; // Template for filename manipulations
 
 
 // Google Sheet Log
@@ -107,6 +108,77 @@ switch ($extraction['api']) {
                 mb_strlen($account_data));
             $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
             $extraction = $helpers->live_log($extraction, $log_values);
+
+        }
+
+        break;
+
+    case "ds":
+
+        // create file with header
+        $extraction['csv_output'] = $extraction['report_header']."\n";
+        $helpers->create_csv_file($extraction);
+
+
+
+
+
+        // First loop : get reportId and fileId
+        foreach ($extraction['accountsData'] as $row) {
+
+                $extraction = $helpers->check_access_token($extraction);
+                $extraction['current'] = $row;
+
+                $log_values = Array(
+                    $extraction['current']['agencyId'],
+                    $extraction['current']['agencyName'],
+                    "START");
+                $extraction = $helpers->live_log($extraction, $log_values);
+
+                $extraction['json_request'] = json_decode($extraction['json_request']);
+                $extraction['json_request']->timeRange->startDate = $extraction['global']['ds']['yesterday'];
+                $extraction['json_request']->timeRange->endDate = $extraction['global']['ds']['yesterday'];
+                $extraction['json_request']->reportScope->agencyId =  $row['agencyId'];
+                $extraction['json_request'] = json_encode($extraction['json_request']);
+                // start pull data
+                $extraction = $ds->start($extraction);
+                if (isset($extraction['current']['error'])) continue;
+
+        }
+
+        $helpers->gae_log(LOG_DEBUG, "check control reportsData" . json_encode($extraction['reportsData']));
+
+
+        // Second loop : ask and wait for content
+        foreach ($extraction['reportsData'] as $row) {
+
+            $extraction = $helpers->check_access_token($extraction);
+            $extraction['current'] = $row;
+
+            if (isset($row['reportId']) ) {
+                $api_response = $ds->ask_until_status_available($extraction);
+
+                $report_url = $api_response->files[0]->url;
+                $report_size = (int)$api_response->files[0]->byteCount;
+                // todo add check and control if return error 500
+                $helpers->gae_log(LOG_DEBUG, "report_size:".$report_size);
+
+                if ($report_size  > 1 ) {
+                    $extraction['csv_output'] = $ds->report_data_from_url($api_response, $extraction);
+                    $helpers->storage_insert_combine_delete($extraction);
+                    $result = "OK";
+                } else {
+                    $result = "EMPTY";
+                }
+
+                $log_values = Array(
+                    $extraction['current']['agencyId'],
+                    $extraction['current']['agencyName'],
+                    $result,
+                    $report_size);
+                $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                $extraction = $helpers->live_log($extraction, $log_values);
+            }
 
         }
 
@@ -281,7 +353,8 @@ switch ($extraction['api']) {
 
                 // exist content case
                 $raw_data = $dcm->headers_cleaner($raw_data, $extraction, 'Campaign', true);
-                if (mb_strlen($extraction['csv_output'] ) > 1 ) {
+                if (mb_strlen($raw_data ) > 1 ) {
+                    $extraction['csv_output'] = $raw_data;
                     $helpers->storage_insert_combine_delete($extraction);
                     $result = "OK";
                 } else {
@@ -454,8 +527,8 @@ switch ($extraction['api']) {
 
             // Start
             $log_values = Array(
-                $extraction['current']['accountId'],
-                $extraction['current']['accountName'],
+                $extraction['current']['viewId'],
+                $extraction['current']['viewName'],
                 "START");
 
             $extraction = $helpers->live_log($extraction, $log_values);
@@ -471,8 +544,8 @@ switch ($extraction['api']) {
             }
 
             $log_values = Array(
-                $extraction['current']['accountId'],
-                $extraction['current']['accountName'],
+                $extraction['current']['viewId'],
+                $extraction['current']['viewName'],
                 $result,
                 mb_strlen($account_data));
             syslog(LOG_DEBUG, json_encode($log_values));

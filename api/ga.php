@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Created by PhpStorm.
- * User: Alejandro.Viveros
- * Date: 2/17/2018
- * Time: 12:55 PM
- */
 
 include_once __DIR__ . '/helpers.php';
 
@@ -26,7 +20,7 @@ class ga
 
         //Reports
         $report_request = array(
-            "viewId" => $extraction['current']['accountId'],
+            "viewId" => $extraction['current']['viewId'],
             "dateRanges" => $extraction['dateRanges'],
             "metrics" => $extraction['metrics'],
             "dimensions" => $extraction['dimensions'],

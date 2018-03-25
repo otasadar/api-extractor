@@ -102,8 +102,10 @@ class helpers
         curl_setopt($curl, CURLOPT_TIMEOUT, 600);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $payload);
 
-        if (isset($headers)) {
+        if (is_array($headers)) {
             curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        } else {
+            $this->gae_log(LOG_DEBUG, "curl without headers" . $endpoint);
         }
         if (isset($extras)) {
             foreach ($extras as $extra) {
@@ -211,7 +213,7 @@ class helpers
     function get_google_storage_session_url($extraction, $bucket, $access_token, $file_path = null)
     {
         if (!$file_path) {
-            $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['file_name']}";
+            $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
         }
 
         $headers = array('X-Upload-Content-Type: text/csv', 'Content-Type: application/json; charset=UTF-8', 'Authorization : Bearer ' . $access_token);
@@ -260,21 +262,27 @@ class helpers
     // Set temporal file, combine files and delete temporal
     function storage_insert_combine_delete($extraction)
     {
+        // todo avoid use filename static, replace for a dynamic
+        //$extraction['file_name'] = str_replace('.csv', '_tmp.csv', $extraction['file_name']);
+        //$this->gae_log(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
+        // todo replace for file_put_contents
+        //$this->create_csv_file($extraction);
 
-        $extraction['file_name'] = str_replace('.csv', '_tmp.csv', $extraction['file_name']);
-
-        $this->gae_log(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
-        $this->create_csv_file($extraction);
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $tmp_object = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}_tmp.csv";
+        $bucket_tmp_path = "gs://$bucket/$tmp_object";
+        file_put_contents($bucket_tmp_path, $extraction['csv_output']);
 
         $response = $this->combine_tmp_google_storage($extraction);
         //$this->gae_log(LOG_DEBUG, 'Combine result : ' . $response);
 
         if (!is_array($response)) {
-            $response = $this->delete_tmp_google_storage($extraction);
+            unlink($bucket_tmp_path);
+            //$response = $this->delete_tmp_google_storage($extraction);
 
             if (is_array($response)) {
                 if ($response[0] !== 204) {
-                    $this->gae_log(LOG_DEBUG, 'errro storage_insert_combine_delete');
+                    $this->gae_log(LOG_DEBUG, 'error storage_insert_combine_delete');
                 }
             }
         }
@@ -285,23 +293,21 @@ class helpers
     function combine_tmp_google_storage($extraction)
     {
 
-        $tmp_file_name = $extraction['file_name'];
-        $file_name = str_replace('_tmp.csv', '.csv', $extraction['file_name']);
-
-        $file_path_encode = rawurlencode("{$extraction['extraction_group']}/input/{$extraction['api']}/$file_name");
-        $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/$file_name";
-        $tmp_file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/$tmp_file_name";
-
-
         $bucket = $extraction['global']['google_storage']['bucket'];
+
+        $tmp_object = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}_tmp.csv";
+        $final_object = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
+        $final_object_encode = rawurlencode($final_object);
+
+
         $access_token = $this->get_storage_access_token($extraction);
         $headers = array('Authorization: Bearer ' . $access_token,
             'Accept: application/json',
             'Content-Type: application/json');
-        $payload = '{"sourceObjects":[{"name":"' . $file_path . '"},{"name":"' . $tmp_file_path . '"}]}';
+        $payload = '{"sourceObjects":[{"name":"' . $final_object . '"},{"name":"' . $tmp_object . '"}]}';
         $version = $extraction['global']['google_storage']['api_version'];
-        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$file_path_encode/compose";
-        $response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$final_object_encode/compose";
+        $response = $this->set_curl($headers, $endpoint, $payload, 'POST');
 
         $this->gae_log(LOG_DEBUG, "combine:$response");
 
@@ -311,10 +317,9 @@ class helpers
     // Delete temporal storage file
     function delete_tmp_google_storage($extraction)
     {
-        $tmp_file_name = $extraction['file_name'];
-        $tmp_file_path = rawurlencode("{$extraction['extraction_group']}/input/{$extraction['api']}/$tmp_file_name");
+        $tmp_file_path = rawurlencode("{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv");
 
-        $this->gae_log(LOG_DEBUG, "delete file : tmp_file_name:$tmp_file_path");
+        $this->gae_log(LOG_DEBUG, "delete file : tmp_object:$tmp_file_path");
 
         $bucket = $extraction['global']['google_storage']['bucket'];
         $access_token = $this->get_storage_access_token($extraction);

@@ -16,7 +16,7 @@ class facebook
     //Facebook API call (Set Request)
     function set_facebook_request($extraction)
     {
-        syslog(LOG_DEBUG, "info_sent: "  . json_encode($extraction));
+        syslog(LOG_DEBUG, "info_sent: "  . mb_strlen(json_encode($extraction)));
 
         $curl_response = $this->make_facebook_request('GET', $extraction['current']['accountId'], $extraction['metrics'], $extraction['breakdowns'], $extraction['attribution_window'], $extraction['startDate'], $extraction['endDate'], $extraction['global']['facebook']['long_token']);
 
@@ -48,6 +48,7 @@ class facebook
             'level=' . 'ad' . '&' .
             'include_headers=' . 'false' . '&' .
             'limit=' . '5000' . '&' .
+            'time_increment=' . '1' . '&' .
             'fields=' . $metrics . '&' .
             "action_attribution_windows=['" . $attribution_window . "']" . '&' .
             "breakdowns=['" . $breakdowns . "']";
@@ -68,7 +69,7 @@ class facebook
         //CURL request
         $curl_response = $helpers->set_curl($headers, $endpoint, $payload, 'POST', null);
 
-        syslog(LOG_DEBUG, "curl_response: "  . json_encode($curl_response));
+        syslog(LOG_DEBUG, "curl_response length: "  . mb_strlen($curl_response));
 
         //Checking if there is an error
         if ($method === 'GET') {
