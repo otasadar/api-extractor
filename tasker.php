@@ -10,6 +10,7 @@ include __DIR__ . '/api/dbm.php';
 include __DIR__ . '/api/ds.php';
 include __DIR__ . '/api/facebook.php';
 include __DIR__ . '/api/ga.php';
+include __DIR__ . '/api/yandex.php';
 
 $helpers = new helpers();
 $adwords = new adwords();
@@ -18,6 +19,7 @@ $dbm = new dbm();
 $ds = new ds();
 $facebook = new facebook();
 $ga = new ga();
+$yandex = new yandex();
 
 $extraction = $_POST['extraction'];
 $extraction['csv_output'] = '';// Temporal container for reports
@@ -46,6 +48,9 @@ switch ($extraction['api_type']) {
         break;
 
     case "facebook":
+        break;
+
+    case "yandex":
         break;
 
     default:
@@ -610,13 +615,50 @@ switch ($extraction['api']) {
 
         break;
 
+    case "yandex":
+
+        // create file with header
+        $extraction['csv_output'] = $extraction['report_header']."\n";
+        $helpers->create_csv_file($extraction);
+
+        foreach ($extraction['accountsData'] as $key => $account) {
+
+            $extraction['current'] = $account;
+
+            $extraction['json_request'] = json_decode($extraction['json_request']);
+            $extraction['json_request']->params->SelectionCriteria->DateFrom = $extraction['startDate'];
+            $extraction['json_request']->params->SelectionCriteria->DateTo = $extraction['endDate'];
+            $extraction['current']['ReportName'] = $extraction['json_request']->params->ReportName . rand();
+            $extraction['json_request']->params->ReportName = $extraction['current'] ['ReportName'];
+            $extraction['json_request'] = json_encode($extraction['json_request']);
+
+            $log_values = Array( $extraction['current']['clientLogin'], "START" );
+            $extraction = $helpers->live_log($extraction, $log_values);
+            $extraction = $yandex->set_yandex_request($extraction);
+
+            syslog(LOG_DEBUG, "output size:".mb_strlen($extraction['csv_output']));
+
+
+            if (mb_strlen($extraction['csv_output']) > 1 ) {
+                $helpers->storage_insert_combine_delete($extraction);
+                $result = "OK";
+            } else {
+                $result = "EMPTY";
+            }
+
+            $log_values = Array( $extraction['current']['clientLogin'], $result, mb_strlen($extraction['csv_output']) );
+            syslog(LOG_DEBUG, "test last part:".json_encode($log_values));
+            $extraction = $helpers->live_log($extraction, $log_values);
+        }
+        break;
+
     default:
         $helpers->gae_log(LOG_DEBUG, 'Not API Name provided ' . $_SERVER['CURRENT_VERSION_ID ']);
         return array('error', "api not provided to extraction  :" . $extraction['extraction_group']);
         break;
 }
 
-
+$helpers->move_tmp_to_final_file($extraction);
 
 
 

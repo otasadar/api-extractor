@@ -1,12 +1,10 @@
 <?php
 
+//$bucket = "api-extractor-staging";
 $bucket = "annalect-dashboarding";
-
 
 ini_set('display_errors', 1);
 use google\appengine\api\taskqueue\PushTask;
-use google\appengine\api\taskqueue\PushQueue;
-use google\appengine\api\log\LogService;
 $datetime = new DateTime();
 $today = $datetime->format('d-m-Y');
 
@@ -60,9 +58,11 @@ foreach ($extractions['items'] as $key => $extraction) {
     $extraction['global'] = $extractions['global'] ;
     $extraction['global']['items_counter'] = count($extractions['items']);
     $extraction['task_name'] = $extraction['api']."-".$extraction['extraction_group']."-".$extraction['extraction_name'];
-    $extraction['extraction_id'] = $key;
+    $extraction['extraction_id'] = rand();
 
-    $task_name = $extraction['task_name']."-".rand();
+    $task_name = $extraction['task_name']."-".$extraction['extraction_id'];
+    // google tasks could be duplicates, added random id for avoid collisions in runtime files
+    $extraction['extraction_name'] = $extraction['extraction_name'].'-tmp-'.$extraction['extraction_id'];
     $task = new PushTask('/run-tasks-'.$extraction['task_name'], ['extraction' => $extraction], ['name' => $task_name]);
     $task->add($extractions['global']['queue']);
     $i++;

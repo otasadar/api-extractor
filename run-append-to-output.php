@@ -6,17 +6,19 @@ include_once __DIR__ . '/api/helpers.php';
 include_once __DIR__ . '/config-global.php';
 $helpers = new helpers();
 
+
+$bucket = $extractions['global']['google_storage']['bucket'];
+
 //Create temp file to append
 $content = '"DBM","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""'."\n";
-file_put_contents("gs://annalect-dashboarding/aio_phd/output/dbm-footer.csv", $content);
+file_put_contents("gs://$bucket/aio_phd/output/dbm-footer.csv", $content);
 
 // Append file
 $file_path = "aio_phd/output/phd_aio_data.csv";
 $file_path_encode = urlencode($file_path);
 $tmp_file_path = "aio_phd/output/dbm-footer.csv";
 
-//$bucket = $extraction['global']['google_storage']['bucket'];
-$bucket = 'annalect-dashboarding';
+
 $access_token = $helpers->get_storage_access_token($extractions);
 $headers = array('Authorization: Bearer ' . $access_token,
     'Accept: application/json',

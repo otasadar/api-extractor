@@ -1,3 +1,12 @@
+<?php
+
+
+
+
+
+
+
+
 
 
 // Global settings at: global-config.php
@@ -6,12 +15,12 @@
 /*
 
 
-//    __   __              _           
+//    __   __              _
 //    \ \ / /_ _ _ __   __| | _____  __
 //     \ V / _` | '_ \ / _` |/ _ \ \/ /
-//      | | (_| | | | | (_| |  __/>  < 
+//      | | (_| | | | | (_| |  __/>  <
 //      |_|\__,_|_| |_|\__,_|\___/_/\_\
-                                  
+
 array_push($extractions['items'], array(
     'api' => 'yandex',
     'api_type' => 'yandex',
@@ -44,38 +53,15 @@ array_push($extractions['items'], array(
         "timeRange": {"startDate":"2018-03-01", "endDate":"2018-03-01"}
     }'
 ));
-
-
-{
-"params": {
-"SelectionCriteria": {
-"Filter": [{
-"Field": "CampaignId",
-"Operator": "IN",
-"Values": [ "10002", "10007" ]
-}]
-},
-"FieldNames": [ "Date", "CampaignId", "Clicks", "Cost" ],
-"OrderBy": [{
-"Field": "Date"
-}],
-"ReportName": "Actual Data",
-"ReportType": "CAMPAIGN_PERFORMANCE_REPORT",
-"DateRangeType": "AUTO",
-"Format": "TSV",
-"IncludeVAT": "YES",
-"IncludeDiscount": "YES"
-}
-}
 */
 
 
-//     ____  ____  
-//    |  _ \/ ___| 
-//    | | | \___ \ 
+//     ____  ____
+//    |  _ \/ ___|
+//    | | | \___ \
 //    | |_| |___) |
-//    |____/|____/ 
-              
+//    |____/|____/
+
 
 /*
 array_push($extractions['items'], array(
@@ -117,12 +103,12 @@ array_push($extractions['items'], array(
 //GA accounts
 
 
-//      ____      _                _       _   _          
-//     / ___|    / \   _ __   __ _| |_   _| |_(_) ___ ___ 
+//      ____      _                _       _   _
+//     / ___|    / \   _ __   __ _| |_   _| |_(_) ___ ___
 //    | |  _    / _ \ | '_ \ / _` | | | | | __| |/ __/ __|
 //    | |_| |_ / ___ \| | | | (_| | | |_| | |_| | (__\__ \
 //     \____(_)_/   \_\_| |_|\__,_|_|\__, |\__|_|\___|___/
-//                                   |___/                
+//                                   |___/
 
 
 /*
@@ -137,7 +123,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report1',
-    'file_name' => "ga_jumeirah_report1.csv",
     'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
     'refresh_token' => '1/eV7uEWf1jd-LqO1gC4RSmq6zlv93kVQ9fqvDLHrCtWY4ahlmxr8gwn-x3kuAl2q2',
     'accountsData' => $jumeirah_account,
@@ -168,7 +153,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report2',
-    'file_name' => "ga_jumeirah_report2.csv",
     'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
     'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
     'accountsData' => $jumeirah_account,
@@ -201,7 +185,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'omd-jumeirah',
     'extraction_name' => 'report3',
-    'file_name' => "ga_jumeirah_report3.csv",
     'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
     'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
     'accountsData' => $jumeirah_account,
@@ -229,18 +212,13 @@ array_push($extractions['items'], array(
 
 
 
-//     _____              _                 _    
+//     _____              _                 _
 //    |  ___|_ _  ___ ___| |__   ___   ___ | | __
 //    | |_ / _` |/ __/ _ \ '_ \ / _ \ / _ \| |/ /
-//    |  _| (_| | (_|  __/ |_) | (_) | (_) |   < 
+//    |  _| (_| | (_|  __/ |_) | (_) | (_) |   <
 //    |_|  \__,_|\___\___|_.__/ \___/ \___/|_|\_\
 //
 
-$phd_accounts_sample = array(
-    array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
-    array('accountId' => 'act_1691511334458362', 'accountName' => 'Al Futtaim - Honda'),
-    array('accountId' => 'act_1685815405027955', 'accountName' => 'Al Futtaim - Lexus'),
-);
 
 $phd_accounts_data = array(
     array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
@@ -349,14 +327,10 @@ array_push($extractions['items'], array(
     'api_type' => 'facebook',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'facebook_all',
-    'file_name' => "facebook_all.csv",
     'credential_email' => 'jpujolardevol@gmail.com',
     'report_type' => "n/a",
     'accountsData' => $phd_accounts_data,
-    'metrics' => 'campaign_name,campaign_id,adset_name,ad_name,frequency,clicks,spend,actions,impressions,cost_per_action_type,reach,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers',
-    'report_header' => 'campaign_name,campaign_id,adset_name,ad_name,frequency,clicks,spend,actions,action_complete_registration,action_credit_spent,action_link_click,action_offsite_conversion.fb_pixel_complete_registration,action_offsite_conversion.fb_pixel_lead,action_offsite_conversion.fb_pixel_purchase,action_page_engagement,action_post_engagement,action_video_view,impressions,cost_per_action_type,action_cost_leadgen.other,action_cost_like,action_cost_mobile_app_install,action_cost_offsite_conversion,action_cost_post_engagement,action_cost_video_view,reach,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers,date_start,date_stop,publisher_platform',
-    'actions'  => 'complete_registration,credit_spent,link_click,offsite_conversion.fb_pixel_complete_registration,offsite_conversion.fb_pixel_lead,offsite_conversion.fb_pixel_purchase,page_engagement,post_engagement,video_view',
-    'actions_cost'  => 'leadgen.other,like,mobile_app_install,offsite_conversion,post_engagement,video_view',
+    'metrics' => 'campaign_name,campaign_id,adset_name,ad_name,frequency,clicks,spend,actions,impressions,cost_per_action_type,cost_per_unique_action_type, cost_per_total_action, reach,video_p100_watched_actions,total_action_value,account_id,ad_id,adset_id,account_name,objective,total_actions,estimated_ad_recall_rate,estimated_ad_recallers',
     'attribution_window' => "28d_view', '28d_click",
     'breakdowns' => 'publisher_platform',
     'startDate' => $extractions['global']['facebook']['historic'],
@@ -370,12 +344,12 @@ array_push($extractions['items'], array(
 
 
 
-//        _       ___        __            _     
-//       / \   __| \ \      / /__  _ __ __| |___ 
+//        _       ___        __            _
+//       / \   __| \ \      / /__  _ __ __| |___
 //      / _ \ / _` |\ \ /\ / / _ \| '__/ _` / __|
 //     / ___ \ (_| | \ V  V / (_) | | | (_| \__ \
 //    /_/   \_\__,_|  \_/\_/ \___/|_|  \__,_|___/
-                                            
+
 $phd_accounts_sample = array(
     array('accountId' => '100-624-9592', 'accountName' => 'AFGRE'),
     array('accountId' => '324-299-8908', 'accountName' => 'Al Futtaim Automall'),
@@ -573,7 +547,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_ad',
-    'file_name' => "adwords_ad.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -591,7 +564,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_campaign1',
-    'file_name' => "adwords_campaign1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -609,7 +581,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_campaign2',
-    'file_name' => "adwords_campaign2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -627,7 +598,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_campaign3',
-    'file_name' => "adwords_campaign3.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -645,7 +615,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_campaign4',
-    'file_name' => "adwords_campaign4.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -662,7 +631,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_campaign5',
-    'file_name' => "adwords_campaign5.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
@@ -680,7 +648,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_search1',
-    'file_name' => "adwords_search1.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_search,
@@ -696,7 +663,6 @@ array_push($extractions['items'], array(
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
     'extraction_name' => 'adwords_search2',
-    'file_name' => "adwords_search2.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_search,
@@ -710,12 +676,12 @@ array_push($extractions['items'], array(
 
 
 
-//     ____   ____ __  __           ____  _      _ 
+//     ____   ____ __  __           ____  _      _
 //    |  _ \ / ___|  \/  |         / ___|| |_ __| |
 //    | | | | |   | |\/| |  _____  \___ \| __/ _` |
 //    | |_| | |___| |  | | |_____|  ___) | || (_| |
 //    |____/ \____|_|  |_|         |____/ \__\__,_|
-                                              
+
 $phd_sample = array(
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
     array('profileId' => '4341639', 'networkName' => 'Canon - DFA EMEA', 'advertiserName' => 'Canon - MENA ', 'advertiserId' => '6927278'),
@@ -838,11 +804,10 @@ array_push($extractions['items'], array(
     'extraction_name' => 'dcm_standard',
     'report_type' => "STANDARD",
     'max_execution_sec' => 3600,
-    'file_name' => "dcm_standard.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_std_cross,
-    'report_header' => "profileId,Campaign,Site (DCM),Placement,Creative Pixel Size,Advertiser,Advertiser ID,Activity,Placement Cost Structure,Booked Impressions,Booked Clicks,Planned Media Cost,Impressions,Clicks,Media Cost,Total Interactions,Interaction Rate,Video Plays,Video Completions",
+    'report_header' => "profileId,Campaign,Site (DCM),Date,Placement,Creative Pixel Size,Advertiser,Advertiser ID,Activity,Placement Cost Structure,Booked Impressions,Booked Clicks,Planned Media Cost,Impressions,Clicks,Media Cost,Total Interactions,Interaction Rate,Video Plays,Video Completions",
     'json_request' => '{
         "name": "test alex",
         "type": "STANDARD",
@@ -863,7 +828,7 @@ array_push($extractions['items'], array(
         "dimensions": [
         {"name": "dfa:campaign"},
         {"name": "dfa:site"},
-        {"name": "dfa:date"},        
+        {"name": "dfa:date"},				
         {"name": "dfa:placement"},
         {"name": "dfa:creativeSize"},
         {"name": "dfa:advertiser"},
@@ -899,21 +864,20 @@ array_push($extractions['items'], array(
 
 
 
-//      ____   ____ __  __           _____ _                 _ 
+//      ____   ____ __  __           _____ _                 _
 //     |  _ \ / ___|  \/  |         |  ___| | ___   ___   __| |
 //     | | | | |   | |\/| |  _____  | |_  | |/ _ \ / _ \ / _` |
 //     | |_| | |___| |  | | |_____| |  _| | | (_) | (_) | (_| |
 //     |____/ \____|_|  |_|         |_|   |_|\___/ \___/ \__,_|
-//                                                             
+//
 
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'floodlight',
+    'extraction_name' => 'dcm_floodlight',
     'max_execution_sec' => 3600,
     'report_type' => 'FLOODLIGHT',
-    'file_name' => "dcm_floodlight.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_flood,
@@ -962,20 +926,19 @@ array_push($extractions['items'], array(
 ));
 
 
-//       ____   ____ __  __            ____                   
-//      |  _ \ / ___|  \/  |          / ___|_ __ ___  ___ ___ 
+//       ____   ____ __  __            ____
+//      |  _ \ / ___|  \/  |          / ___|_ __ ___  ___ ___
 //      | | | | |   | |\/| |  _____  | |   | '__/ _ \/ __/ __|
 //      | |_| | |___| |  | | |_____| | |___| | | (_) \__ \__ \
 //      |____/ \____|_|  |_|          \____|_|  \___/|___/___/
-                                                       
+
 array_push($extractions['items'], array(
     'api' => 'dcm',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'crossreach',
+    'extraction_name' => 'dcm_crossreach',
     'max_execution_sec' => 3600,
     'report_type' => "CROSS_DIMENSION_REACH",
-    'file_name' => "dcm_crossreach.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_std_cross,
@@ -1030,7 +993,7 @@ array_push($extractions['items'], array(
 
 
 
-//     ____  ____  __  __ 
+//     ____  ____  __  __
 //    |  _ \| __ )|  \/  |
 //    | | | |  _ \| |\/| |
 //    | |_| | |_) | |  | |
@@ -1052,7 +1015,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'general-accuen',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_GENERAL",
-    'file_name' => "bucket/ext_group/input/ext_name.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'report_header' => "Advertiser,Advertiser ID,Advertiser Currency,Insertion Order,Insertion Order ID,Line Item,Line Item ID,Creative,Creative ID,Impressions,Billable Impressions,Clicks,Click Rate (CTR),Total Conversions,Post-Click Conversions,Post-View Conversions,Revenue (Adv Currency),Media Cost (Advertiser Currency)",
@@ -1093,7 +1055,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'trueview-accuen',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_TRUEVIEW",
-    'file_name' => "bucket/ext_group/input/ext_name.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'startDate' => $extractions['global']['dbm']['historic'],
@@ -1132,7 +1093,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'general-alshaya',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_GENERAL",
-    'file_name' => "bucket/ext_group/input/ext_name.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'report_header' => "Advertiser,Advertiser ID,Advertiser Currency,Insertion Order,Insertion Order ID,Line Item,Line Item ID,Creative,Creative ID,Impressions,Billable Impressions,Clicks,Click Rate (CTR),Total Conversions,Post-Click Conversions,Post-View Conversions,Revenue (Adv Currency),Media Cost (Advertiser Currency)",
@@ -1173,7 +1133,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'trueview-alshaya',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_TRUEVIEW",
-    'file_name' => "bucket/ext_group/input/ext_name.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'startDate' => $extractions['global']['dbm']['historic'],
@@ -1220,7 +1179,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'reach',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_REACH_AND_FREQUENCY",
-    'file_name' => "aio-dbm-phd-reach.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'startDate' => $extractions['global']['dbm']['historic'],
@@ -1262,7 +1220,6 @@ array_push($extractions['items'], array(
     'extraction_name' => 'audience',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_AUDIENCE_PERFORMANCE",
-    'file_name' => "aio-dbm-phd-audience.csv",
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'startDate' => $extractions['global']['dbm']['historic'],

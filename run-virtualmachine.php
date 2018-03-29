@@ -4,7 +4,6 @@
 // https://api-extractor-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=start
 // https://api-extractor-dot-annalect-api-jobs.appspot.com/run-virtualmachine?action=stop
 
-use google\appengine\api\log\LogService;
 include_once __DIR__ . '/api/helpers.php';
 include_once __DIR__ . '/config-global.php';
 $helpers = new helpers();

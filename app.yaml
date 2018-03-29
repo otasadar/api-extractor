@@ -1,8 +1,8 @@
-application: annalect-api-jobs
-#service: api-extractor-staging2
+#application: annalect-api-jobs
+#service: api-extractor-staging
 service: api-extractor
-#service: api-extractor
-version: v4
+
+#version: v1
 
 runtime: php55
 api_version: 1

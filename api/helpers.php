@@ -48,14 +48,7 @@ class helpers
                 $access_token_datetime = $extraction['access_token_datetime'];
         }
 
-
-        $now = new DateTime();
-        $start_date = new DateTime($access_token_datetime);
-        $since_start = $start_date->diff(new DateTime($now->format('Y-m-d H:i:s')));
-
-        $minutes = $since_start->days * 24 * 60;
-        $minutes += $since_start->h * 60;
-        $minutes += $since_start->i;
+        $minutes = $this->get_minutes_diff($access_token_datetime);
 
         if ($minutes > 50) {
             $client_id = $extraction['global']['google']['client_id'];
@@ -90,6 +83,29 @@ class helpers
 
     }
 
+    function get_minutes_diff($to_date) {
+        $now = new DateTime();
+        $start_date = new DateTime($to_date);
+        $since_start = $start_date->diff(new DateTime($now->format('Y-m-d H:i:s')));
+
+        $minutes = $since_start->days * 24 * 60;
+        $minutes += $since_start->h * 60;
+        $minutes += $since_start->i;
+        return $minutes;
+    }
+
+    function get_seconds_diff($to_date) {
+        $now = new DateTime();
+        $start_date = new DateTime($to_date);
+        $since_start = $start_date->diff(new DateTime($now->format('Y-m-d H:i:s')));
+
+        $seconds = $since_start->days * 24 * 60;
+        $seconds += $since_start->h * 60;
+        $seconds += $since_start->i * 60;
+        $seconds += $since_start->s;
+        return $seconds;
+    }
+
     //  SET CURL GENERAL - HELPER METHOD THAT ISSUES A CURL REQUEST
     function set_curl($headers, $endpoint, $payload, $type, $extras = null, $range = null)
     {
@@ -116,28 +132,28 @@ class helpers
             curl_setopt($curl, CURLOPT_RANGE, $range);
         }
 
-        $response = curl_exec($curl);
-        $info = curl_getinfo($curl);
+        $response_body = curl_exec($curl);
+        $response_headers = curl_getinfo($curl);
         curl_close($curl);
 
-        if (strpos($info['http_code'], '30') !== false) {
 
-            $this->gae_log(LOG_DEBUG, "URL size before downlodad:" . $this->get_curl_remote_file_size($info['redirect_url']));
-            $response = $this->set_simple_curl($info['redirect_url']);
-            $this->gae_log(LOG_DEBUG, "simple curl after downlodad:" . mb_strlen($response));
-            return $response;
+        if (strpos($response_headers['http_code'], '30') !== false) {
 
-        } else if (strpos($info['http_code'], '20') !== false) {
+            $this->gae_log(LOG_DEBUG, "URL size before downlodad:" . $this->get_curl_remote_file_size($response_headers['redirect_url']));
+            $response_body = $this->set_simple_curl($response_headers['redirect_url']);
+            $this->gae_log(LOG_DEBUG, "simple curl after downlodad:" . mb_strlen($response_body));
+            return $response_body;
 
-            return $response;
+        } else if (strpos($response_headers['http_code'], '20') !== false) {
+
+            return $response_body;
 
         } else {
-            //$this->gae_log(LOG_DEBUG, "error curl :" . json_encode($info));
-            //$this->gae_log(LOG_DEBUG, "error curl :" . json_encode($headers));
+            $this->gae_log(LOG_DEBUG, "error curl :" . json_encode($response_headers));
             $this->gae_log(LOG_DEBUG, "error curl :" . $endpoint);
-            $this->gae_log(LOG_DEBUG, "error curl :" . $response);
+            $this->gae_log(LOG_DEBUG, "error curl :" . $response_body);
             $this->gae_log(LOG_DEBUG, "error curl :" . $type);
-            return array($info['http_code'], $response, $endpoint, $info);
+            return array($response_headers['http_code'], $response_body, $endpoint, $response_headers);
         }
     }
 
@@ -155,6 +171,40 @@ class helpers
         if (curl_errno($ch)) {
             $this->gae_log(LOG_DEBUG, "error set_simple_curl" . curl_error($ch));
         }
+        curl_close($ch);
+        return $result;
+    }
+
+    // GET CURL RAW WITH HEADER - regular functions only returns standards headers. Yandex API use custom headers
+    function set_curl_raw($headers, $endpoint, $payload, $type, $extras = null, $range = null)
+    {
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $type);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_HEADER, TRUE);
+
+        $header_body =  curl_exec($ch);
+
+        //$this->gae_log(LOG_DEBUG, "set_curl_raw".$header_body);
+
+        $header =  substr($header_body, 0, strpos($header_body, "\r\n\r\n" ));
+        $body =  substr($header_body, (strpos($header_body, "\r\n\r\n" )+4));
+
+        $header = explode("\r\n", $header );
+        foreach ($header as $key => $row){
+            if (strpos($row, ':') !== false) {
+                $row = explode(":", $row );
+                $header[$row[0]] = trim($row[1]);
+                unset($header[$key]);
+            }
+        }
+
+        $result = ["header" => $header, "body" => $body];
+
         curl_close($ch);
         return $result;
     }
@@ -262,23 +312,15 @@ class helpers
     // Set temporal file, combine files and delete temporal
     function storage_insert_combine_delete($extraction)
     {
-        // todo avoid use filename static, replace for a dynamic
-        //$extraction['file_name'] = str_replace('.csv', '_tmp.csv', $extraction['file_name']);
-        //$this->gae_log(LOG_DEBUG, 'storage tmp file: ' . $extraction['file_name']);
-        // todo replace for file_put_contents
-        //$this->create_csv_file($extraction);
-
         $bucket = $extraction['global']['google_storage']['bucket'];
         $tmp_object = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}_tmp.csv";
         $bucket_tmp_path = "gs://$bucket/$tmp_object";
         file_put_contents($bucket_tmp_path, $extraction['csv_output']);
 
         $response = $this->combine_tmp_google_storage($extraction);
-        //$this->gae_log(LOG_DEBUG, 'Combine result : ' . $response);
 
         if (!is_array($response)) {
             unlink($bucket_tmp_path);
-            //$response = $this->delete_tmp_google_storage($extraction);
 
             if (is_array($response)) {
                 if ($response[0] !== 204) {
@@ -419,6 +461,16 @@ class helpers
         } else {
             $report_type = 'N/A';
         }
+        if (isset($extraction['global']['google_sheet']['last_request'])) {
+            // limit 'USER-100s' of service 'sheets.googleapis.com'
+            $interval = $extraction['global']['items_counter'];
+            $seconds_diff = $this->get_seconds_diff($extraction['global']['google_sheet']['last_request']) - $interval;
+
+            if ($seconds_diff > 0) {
+                sleep($seconds_diff);
+            }
+
+        }
         array_unshift($row,
             $now->format('d-m-Y'),
             $now->format('H:i:s'),
@@ -433,10 +485,9 @@ class helpers
         $payload = json_encode(array("values" => array($row)));// double array
         $this->set_curl($headers, $endpoint, $payload, 'POST', null);
 
-        // limit 'USER-100s' of service 'sheets.googleapis.com'
-        // num of task per 1 sec
-        $micro_seconds = (1000000 * $extraction['global']['items_counter']) + 100000;
-        usleep($micro_seconds);
+        $now = new DateTime();
+        $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
+
         return $extraction;
     }
 
@@ -790,5 +841,43 @@ class helpers
 
     }
 
+    // Copy objects in same bucket
+    function copy_object_google_storage($extraction, $sourceObject, $destinationObject )
+    {
+
+        $bucket = $extraction['global']['google_storage']['bucket'];
+
+        $sourceObject = rawurlencode($sourceObject);
+        $destinationObject = rawurlencode($destinationObject);
+        $sourceBucket = rawurlencode($bucket);
+        $destinationBucket = rawurlencode($bucket);
+
+
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization: Bearer ' . $access_token,
+            'Accept: application/json',
+            'Content-Type: application/json');
+        $version = $extraction['global']['google_storage']['api_version'];
+
+
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$sourceBucket/o/$sourceObject/copyTo/b/$destinationBucket/o/$destinationObject";
+        $response = $this->set_curl($headers, $endpoint, null, 'POST');
+        $response = json_encode($response);
+        $this->gae_log(LOG_DEBUG, "copied bucket object");
+
+        return $response;
+    }
+
+    function move_tmp_to_final_file($extraction) {
+
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $sourceObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
+        $extraction['extraction_name'] = str_replace('-tmp-'.$extraction['extraction_id'], '', $extraction['extraction_name']);
+        $destinationObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
+        $response = $this->copy_object_google_storage($extraction, $sourceObject, $destinationObject );
+
+        if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
+
+    }
 
 }

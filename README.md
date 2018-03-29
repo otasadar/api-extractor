@@ -36,6 +36,7 @@ Futures tasks
  - Add case in function set_curl in case of 40x or 50x for avoid continue sequence, for stopping or jump process 
  - DCM add validation after each request
  - AdWords combine files split by 2months range
+ - DBM combine extraction, moving refresh token to account dataa
  - DCM use tmp files for avoid memory leak
  - DCM on 404 error send error to sheets
  - Be sure when Empty response is not an error vs a real empty
