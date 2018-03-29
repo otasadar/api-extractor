@@ -561,6 +561,30 @@ class helpers
 
     }
 
+    // Split date in equal parts
+    function split_dates_equal($min, $max, $parts, $output = "Y-m-d")
+    {
+        $dataCollection[] = date($output, strtotime($min));
+        $diff = (strtotime($max) - strtotime($min)) / $parts;
+        $convert = strtotime($min) + $diff;
+
+        for ($i = 1; $i < $parts; $i++) {
+            $dataCollection[] = date($output, $convert);
+            $convert += $diff;
+        }
+        $dataCollection[] = date($output, strtotime($max));
+        return $dataCollection;
+    }
+
+    // Return numer of month between two dates
+    function date_difference($startDate, $endDate, $format)
+    {
+        $d1 = new DateTime($startDate);
+        $d2 = new DateTime($endDate);
+        $interval = $d2->diff($d1);
+        return (int)$interval->format('%' . $format);
+    }
+
     // Google API storage - Transfer URL to bucket
     function transfer_urls_to_bucket($extraction)
     {

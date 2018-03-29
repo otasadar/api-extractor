@@ -445,71 +445,126 @@ switch ($extraction['api']) {
 
     case "facebook":
 
-        $extraction['csv_output'] = $extraction['report_header']."\n";
-        $helpers->create_csv_file($extraction);
-        $async_report_ids = [];
-        $async_account_ids = [];
-        $async_account_name = [];
-        $is_sync = true;
+        $reports = [];
+        $reports_running = [];
+        $start_date = $extraction['startDate'];
+        $end_date = $extraction['endDate'];
+        $still_pending_reports = true;
+        $include_header = true;
 
         foreach ($extraction['accountsData'] as $key => $account) {
-
+            $first_date_split = true;
             $extraction['current'] = $account;
-            $account_info = $facebook->set_facebook_request($extraction);
-            $account_data = $account_info[0];
+            $array_dates = $helpers->split_dates_equal($start_date, $end_date, $helpers->date_difference($start_date, $end_date, 'm'));
 
-            if ($account_info[1]){
-                $is_sync = false;
-                array_push($async_report_ids, $account_info[1]);
-                array_push($async_account_ids, $extraction['current']['accountId']);
-                array_push($async_account_name, $extraction['current']['accountName']);
+            for ($x = 0; $x < count($array_dates) - 1; $x++) {
 
-            } else {
-                $is_sync = true;
-            }
+                if ($first_date_split) {
+                    $extraction['startDate'] = $array_dates[$x];
+                    $first_date_split = false;
 
-            if ($is_sync) {
-
-                $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'sync', "START");
-                $extraction = $helpers->live_log($extraction, $log_values);
-
-                if (mb_strlen($account_data) > 1 ) {
-                    $extraction['csv_output'] = $account_data;
-                    $helpers->storage_insert_combine_delete($extraction);
-                    $result = "OK";
                 } else {
-                    $result = "EMPTY";
+                    $date = date_create($array_dates[$x]);
+                    date_add($date, date_interval_create_from_date_string('1 day'));
+                    $extraction['startDate'] = date_format($date, 'Y-m-d');
                 }
 
-                $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'sync', $result, mb_strlen($account_data));
+                $extraction['endDate'] = $array_dates[$x + 1];
+                $report_request_id = $facebook->set_facebook_request($extraction);
+
+                if ($report_request_id !== 'error') {
+                    $report_info = new stdClass();
+                    $report_info->report_id = $report_request_id;
+                    $report_info->account_id = $extraction['current']['accountId'];
+                    $report_info->account_name = $extraction['current']['accountName'];
+                    $report_info->date_range = $extraction['startDate'] . '/' . $extraction['endDate'];
+                    array_push($reports, $report_info);
+                    $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], $report_request_id, 'REPORT REQUESTED');
+
+                } else {
+                    $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], $report_request_id, 'REPORT ERROR REQUESTED');
+
+                }
                 $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
                 $extraction = $helpers->live_log($extraction, $log_values);
             }
         }
 
-        if (!empty($async_report_ids)) {
 
-            foreach ($async_report_ids as $key => $report_id) {
+        if (!empty($reports)) {
 
-                $extraction['current'] = array('accountId' => $async_account_ids[$key], 'accountName' => $async_account_name[$key]);
-                $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'async', "START");
-                $extraction = $helpers->live_log($extraction, $log_values);
+            while ($still_pending_reports) {
 
-                $account_data = $facebook->set_async_facebook_request($extraction, $report_id);
+                foreach ($reports as $key => $report) {
 
-                if (mb_strlen($account_data) > 1 ) {
-                    $extraction['csv_output'] = $account_data;
-                    $helpers->storage_insert_combine_delete($extraction);
-                    $result = "OK";
-                } else {
-                    $result = "EMPTY";
+                    $account_data = $facebook->set_async_facebook_request($extraction, $report->report_id);
+
+                    if ($account_data[0] === 'loading') {
+                        $report_running_info = new stdClass();
+                        $report_running_info->report_id = $report->report_id;
+                        $report_running_info->account_id = $report->account_id;
+                        $report_running_info->account_name = $report->account_name;
+                        $report_running_info->date_range = $report->date_range . '/' . $report->endDate;
+                        array_push($reports_running, $report_running_info);
+
+                        $current_time = new DateTime(date('H:i:s'));
+                        $minute = (int)$current_time->format('i');
+
+                        if ($minute % 5 === 0) {
+                            $log_values = Array($report->account_id, $report->account_name, $report->report_id, 'REPORT LOADING-> ' . $account_data[1] . '%');
+                            $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                            $extraction = $helpers->live_log($extraction, $log_values);
+                        }
+                    }
+
+                    if ($account_data[0] === 'fail') {
+                        array_push($async_report_ids_running, $account_data[1]);
+
+                        $log_values = Array($report->account_id, $report->account_name, $report->report_id . ' ---> ' . $account_data[1], 'REPORT FAILED');
+                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                        $extraction = $helpers->live_log($extraction, $log_values);
+                    }
+
+                    if ($account_data[0] === 'done') {
+
+                        $log_values = Array($report->account_id, $report->account_name, $report->report_id, 'REPORT RECEIVED FROM API');
+                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                        $extraction = $helpers->live_log($extraction, $log_values);
+
+                        if (mb_strlen($account_data[1]) > 22) {
+
+                            if ($include_header) {
+                                $extraction['csv_output'] = $account_data[1];
+                                $helpers->create_csv_file($extraction);
+                                $include_header = false;
+                                $result = 'REPORT UPDATED TO STORAGE WITH HEADER';
+
+                            } else {
+                                $extraction['csv_output'] = implode("\n", array_slice(explode("\n", $account_data[1]), 1));
+                                $helpers->storage_insert_combine_delete($extraction);
+                                $result = 'REPORT UPDATED TO STORAGE WITHOUT HEADER';
+                            }
+
+                        } else {
+                            $result = 'REPORT IS EMPTY';
+                        }
+
+                        $log_values = Array($report->account_id, $report->account_name, $report->report_id, $result, mb_strlen($account_data[1]));
+                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                        $extraction = $helpers->live_log($extraction, $log_values);
+                    }
                 }
 
-                $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], 'async', $result, mb_strlen($account_data));
-                $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                $extraction = $helpers->live_log($extraction, $log_values);
+                if (!empty($async_report_ids_running)) {
+                    $reports = $reports_running;
+                    $reports_running = [];
+                    sleep(60);
+                } else {
+                    $still_pending_reports = false;
+                }
             }
         }
+
         break;
 
     case "ga":
