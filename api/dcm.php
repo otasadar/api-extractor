@@ -66,7 +66,7 @@ class dcm
             $floodlightConfigIdsValidated [] = $result['id'];
         }
         if (!empty($floodlightConfigIdsValidated)) {
-            $this->helpers->gae_log(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
+            //$this->helpers->gae_log(LOG_DEBUG, "dcm_check_floodlightConfigIds " . implode(',', $floodlightConfigIdsValidated));
         }
         sleep(1);
         return $floodlightConfigIdsValidated;
@@ -79,8 +79,6 @@ class dcm
 
 
         $advertiserIds = [];
-        $this->helpers->gae_log(LOG_DEBUG, "check control adid-1" . json_encode($advertiserIds));
-        $this->helpers->gae_log(LOG_DEBUG, "check control adid" . json_encode($extraction['accountsData'][$profileId] ));
 
         foreach ($extraction['accountsData'][$profileId] as $row) {
             $advertiserIds[] = $row['advertiserId'];
@@ -97,9 +95,11 @@ class dcm
         foreach ($curl_response['advertisers'] as $key => $result) {
             $advertiserIdsValidated [] = $result['id'];
         }
+
         if (!empty($advertiserIdsValidated)) {
-            $this->helpers->gae_log(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
+            //$this->helpers->gae_log(LOG_DEBUG, "dcm_check_advertiserIds " . implode(',', $advertiserIdsValidated));
         }
+
         sleep(1);
         return $advertiserIdsValidated;
 
@@ -138,16 +138,15 @@ class dcm
         $headers = array('Content-type: application/json');
         $api_version = $extraction['global']['dcm']['api_version'];
         $endpoint = "https://www.googleapis.com/dfareporting/$api_version/userprofiles/$profileId/reports?access_token=" . $extraction['access_token'];
-        $this->helpers->gae_log(LOG_DEBUG, "endpoint " . $endpoint);
-        $this->helpers->gae_log(LOG_DEBUG, "json_request " . $extraction['json_request']);
+        //$this->helpers->gae_log(LOG_DEBUG, "endpoint " . $endpoint);
+        //$this->helpers->gae_log(LOG_DEBUG, "json_request " . $extraction['json_request']);
 
 
         $curl_response = $this->helpers->set_curl($headers, $endpoint, $extraction['json_request'], 'POST', null);
         $curl_response = json_decode($curl_response);
 
-        //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
-        //
-        $this->helpers->gae_log(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
+
+        //$this->helpers->gae_log(LOG_DEBUG, "dcm_report_setup " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -169,9 +168,8 @@ class dcm
         $curl_response = $this->helpers->set_curl($headers, $endpoint, '', 'POST', null);
         $curl_response = json_decode($curl_response);
 
-        //$this->helpers->gae_log(LOG_DEBUG, "reportId ".$reportId );
-        //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
-        $this->helpers->gae_log(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
+
+        //$this->helpers->gae_log(LOG_DEBUG, "dcm_run_report " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -200,7 +198,7 @@ class dcm
         //$this->helpers->gae_log(LOG_DEBUG, "reportId ".$reportId );
         //$this->helpers->gae_log(LOG_DEBUG, "profileId ".$profileId );
         //$this->helpers->gae_log(LOG_DEBUG, "fileId ".$fileId );
-        $this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
+        //$this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url " . json_encode($curl_response));
         sleep(1);
         return $curl_response;
     }
@@ -210,19 +208,19 @@ class dcm
     {
 
         $log_values = Array("original CSV : " . $api_response->urls->browserUrl);
-        $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+        //$this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
 
         $url = $api_response->urls->apiUrl;
         $status = $api_response->status;
         $access_token = $extraction['access_token'];
 
-        $this->helpers->gae_log(LOG_DEBUG, "url " . $url);
-        $this->helpers->gae_log(LOG_DEBUG, "status " . $status);
+        //$this->helpers->gae_log(LOG_DEBUG, "url " . $url);
+        //$this->helpers->gae_log(LOG_DEBUG, "status " . $status);
 
         $headers = array("Authorization: Bearer $access_token");
         $endpoint = "$url";
         $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET');
-        $this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url_content: " . strlen($curl_response));
+        //$this->helpers->gae_log(LOG_DEBUG, "dcm_get_report_url_content: " . strlen($curl_response));
 
         return $curl_response; // check if is a CSV data or JSON
     }
@@ -239,7 +237,7 @@ class dcm
             return $api_response2;
 
         } else if ($api_response->status === "PROCESSING") {
-            $this->helpers->gae_log(LOG_DEBUG, "queueDelay:60");
+            //$this->helpers->gae_log(LOG_DEBUG, "queueDelay:60");
             sleep(60);
             return $this->ask_until_status_available($extraction);
 
@@ -336,17 +334,17 @@ class dcm
                         switch ($extraction['report_type']) {
                             case "STANDARD":
                                 $extraction['csv_output'] = "profileId," . $rows[$i] . "\n";
-                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                //$this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
 
                                 break;
                             case "FLOODLIGHT":
                                 $extraction['csv_output'] = "profileId," . $rows[$i] . "\n";
-                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                //$this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
                                 break;
 
                             case "CROSS_DIMENSION_REACH":
                                 $extraction['csv_output'] = "AdvertiserId," . $rows[$i] . "\n";
-                                $this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
+                                //$this->helpers->gae_log(LOG_DEBUG, "Adding header:{$extraction['csv_output']}");
                                 break;
                         }
 
@@ -376,31 +374,31 @@ class dcm
                 for ($i = 0; $i < $total_rows; $i++) {
 
                     if (strpos($rows[$i], $needle) !== false) {
-                        $this->helpers->gae_log(LOG_DEBUG, "founded needle:" . $needle);
-                        $this->helpers->gae_log(LOG_DEBUG, "removed last line" . $rows[$i]);
+                        //$this->helpers->gae_log(LOG_DEBUG, "founded needle:" . $needle);
+                        //$this->helpers->gae_log(LOG_DEBUG, "removed last line" . $rows[$i]);
 
 
                         if (empty(trim($rows[($i + 1)]))) {
-                            $this->helpers->gae_log(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
+                            //$this->helpers->gae_log(LOG_DEBUG, "removed space line" . $rows[($i + 1)]);
                             unset($rows[($i + 1)]); //next line is empty
                         }
                         unset($rows[$i]);
                         break;
                     } else {
-                        $this->helpers->gae_log(LOG_DEBUG, "removed line" . $rows[$i]);
+                        //$this->helpers->gae_log(LOG_DEBUG, "removed line" . $rows[$i]);
                         unset($rows[$i]);
                     }
 
                 }
             } else {
-                $this->helpers->gae_log(LOG_DEBUG, "needle not FOUND:" . $raw_data);
+                //$this->helpers->gae_log(LOG_DEBUG, "needle not FOUND:" . $raw_data);
             }
 
             // remove footer
             if (isset($remove_last_line)) {
-                $this->helpers->gae_log(LOG_DEBUG, "removed footer line" . end($rows));
+                //$this->helpers->gae_log(LOG_DEBUG, "removed footer line" . end($rows));
                 array_pop($rows);
-                $this->helpers->gae_log(LOG_DEBUG, "removed footer line2" . end($rows));
+                //$this->helpers->gae_log(LOG_DEBUG, "removed footer line2" . end($rows));
                 array_pop($rows);
             }
 
@@ -441,7 +439,7 @@ class dcm
                 $this->helpers->return_isset($extraction['current']['networkName']),
                 "OK",
                 mb_strlen($raw_data));
-            $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+            //$this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
             $extraction = $this->helpers->live_log($extraction, $log_values);
 
         } else {
@@ -454,8 +452,8 @@ class dcm
                 $this->helpers->return_isset($extraction['current']['networkName']),
                 "EMPTY",
                 mb_strlen($raw_data));
-            $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-            $this->helpers->gae_log(LOG_DEBUG, $raw_data);
+            //$this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+            //$this->helpers->gae_log(LOG_DEBUG, $raw_data);
             $extraction = $this->helpers->live_log($extraction, $log_values);
         }
         return $extraction;

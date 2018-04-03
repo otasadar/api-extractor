@@ -16,7 +16,7 @@ class ga
         $headers = array('Authorization : Bearer ' . $extraction['access_token'], 'Content-Type: application/json');
 
         //URL
-        $endpoint = 'https://content-analyticsreporting.googleapis.com/v4/reports:batchGet?alt=json';
+        $endpoint = 'https://analyticsreporting.googleapis.com/v4/reports:batchGet?alt=json';
 
         //Reports
         $report_request = array(

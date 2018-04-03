@@ -32,7 +32,7 @@ class helpers
 
     function check_access_token($extraction, $case = null)
     {
-
+        $now = new DateTime();
         switch ($case) {
 
             case "google_transfer":
@@ -351,7 +351,7 @@ class helpers
         $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o/$final_object_encode/compose";
         $response = $this->set_curl($headers, $endpoint, $payload, 'POST');
 
-        $this->gae_log(LOG_DEBUG, "combine:$response");
+        //$this->gae_log(LOG_DEBUG, "combine:$response");
 
         return $response;
     }
@@ -455,39 +455,66 @@ class helpers
     // log using google sheet
     function live_log($extraction, $row)
     {
-        $now = new DateTime();
+
+        $row = $this->live_log_add_general($extraction, $row);
+
+        if (isset($extraction['global']['google_sheet']['last_request'])) {
+            // limit 'USER-100s' of service 'sheets.googleapis.com'
+            $total_task = $extraction['global']['items_counter'];
+            $seconds_diff = $this->get_seconds_diff($extraction['global']['google_sheet']['last_request']) - $total_task;
+
+            if (!isset($extraction['global']['google_sheet']['rows'])) {
+                $extraction['global']['google_sheet']['rows'] = [];
+            }
+            array_push($extraction['global']['google_sheet']['rows'], $row);
+            if ($seconds_diff > $total_task+1) {
+                $row = $extraction['global']['google_sheet']['rows'];
+                $extraction = $this->live_log_request($extraction, $row);
+                $extraction['global']['google_sheet']['rows'] = [];
+            }
+
+        } else {
+            // first time
+            $row =  array($row); // double array
+            $extraction = $this->live_log_request($extraction, $row);
+        }
+
+
+        return $extraction;
+    }
+
+    // add general values to each row of live loggin
+    function live_log_add_general($extraction, $row) {
+        // live log common
         if (isset($extraction['report_type'])) {
             $report_type = $extraction['report_type'];
         } else {
             $report_type = 'N/A';
         }
-        if (isset($extraction['global']['google_sheet']['last_request'])) {
-            // limit 'USER-100s' of service 'sheets.googleapis.com'
-            $interval = $extraction['global']['items_counter'];
-            $seconds_diff = $this->get_seconds_diff($extraction['global']['google_sheet']['last_request']) - $interval;
 
-            if ($seconds_diff > 0) {
-                sleep($seconds_diff);
-            }
-
-        }
+        $now = new DateTime();
         array_unshift($row,
             $now->format('d-m-Y'),
             $now->format('H:i:s'),
             $extraction['api'],
             $extraction['task_name'],
             $report_type);
+        return $row;
+
+    }
+
+    // final request for live logging
+    function live_log_request($extraction, $row) {
+
+        $now = new DateTime();
         $extraction = $this->check_access_token($extraction, 'sheets');
         $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
         $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);
         $api_version = $extraction['global']['google_sheet']['api_version'];
-        $endpoint = "https://content-sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
-        $payload = json_encode(array("values" => array($row)));// double array
+        $endpoint = "https://sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
+        $payload = json_encode(array("values" => $row));// double array
         $this->set_curl($headers, $endpoint, $payload, 'POST', null);
-
-        $now = new DateTime();
         $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
-
         return $extraction;
     }
 
@@ -536,24 +563,25 @@ class helpers
         $response = $this->get_urls_to_transfer($extraction, $search_str);
         $this->gae_log(LOG_DEBUG, "search_str:" . $search_str);
         $this->gae_log(LOG_DEBUG, "url-to-transfer:" . json_encode($response));
-        $this->live_log($extraction, Array("GET-URLS"));
+        $extraction = $this->live_log($extraction, Array("GET-URLS"));
 
         // Read URL for get MD5 and size
         $response = $this->get_urls_md5($response);
         $this->gae_log(LOG_DEBUG, "get-md5:" . $response);
-        $this->live_log($extraction, Array("GET-URLS-MD5"));
+        $extraction = $this->live_log($extraction, Array("GET-URLS-MD5"));
 
         // Save TSV file
         $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv", $response);
-        $this->live_log($extraction, Array("SET-TSV"));
+        $extraction = $this->live_log($extraction, Array("SET-TSV"));
 
         // start transfer from URL source to bucket destination using API Google Transfer
         $response = $this->transfer_urls_to_bucket($extraction);
         $this->gae_log(LOG_DEBUG, "transfer-response:" . json_encode($response));
-        $this->live_log($extraction, Array("TRANSFER","START"));
+        $extraction = $this->live_log($extraction, Array("TRANSFER","START"));
 
         // check status until === ENABLED
         $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
+        $extraction = $this->live_log($extraction, Array("TRANSFER",$status));
         // to do : if status !== SUCCESS die process
 
 
@@ -561,7 +589,9 @@ class helpers
         $search_str = "storage.googleapis.com";
         $destination_folder = "{$extraction['extraction_group']}/input/{$extraction['api']}";
         $this->move_buckets_files($extraction, $search_str, $destination_folder);
-        $this->live_log($extraction, Array("MOVE-OBJECTS"));
+        $extraction = $this->live_log($extraction, Array("MOVE-OBJECTS"));
+
+        return $extraction;
 
     }
 
@@ -715,13 +745,19 @@ class helpers
         $filter = '{"project_id" : "' . $extraction['global']['project'] . '", "job_names": ["' . $response->name . '"]}';
         $filter = rawurlencode($filter);
         $api_version = $extraction['global']['google_storage_transfer']['api_version'];
-        $endpoint = "https://content-storagetransfer.googleapis.com/$api_version/transferOperations?filter=$filter";
+        $endpoint = "https://storagetransfer.googleapis.com/$api_version/transferOperations?filter=$filter";
 
-        //CURL request
-        $response2 = $this->set_curl($headers, $endpoint, null, 'GET', null);
-        $this->gae_log(LOG_DEBUG, "response2-status:" . json_encode($response2));
+        $response2 = $this->set_curl($headers, $endpoint, null, 'GET');
+        $this->gae_log(LOG_DEBUG, "response2-status:" . $response2);
+
         $response2 = json_decode($response2);
-        return $response2->operations[0]->metadata->status;
+        if(isset($response2->operations[0]->metadata->status)) {
+            return $response2->operations[0]->metadata->status;
+        } else {
+            return null;
+        }
+
+
     }
 
     // Recursive functions for retrieve enable status
@@ -731,18 +767,10 @@ class helpers
 
         if ($status === 'IN_PROGRESS') {
             sleep(5);
-            //$status = $this->get_status_transfer_urls_to_bucket($extraction, $response);
-            $this->live_log($extraction, Array("TRANSFER", $status));
+            $extraction = $this->live_log($extraction, Array("TRANSFER", $status));
             return $this->check_status_transfer_urls_to_bucket($extraction, $response);
         }
-        else if ($status === 'SUCCESS') {
-            $this->live_log($extraction, Array("TRANSFER", $status));
-            $this->gae_log(LOG_DEBUG, "TRANSFER - " . $status);
-            return $status;
-        }
         else {
-            $this->live_log($extraction, Array("TRANSFER ERROR", $status));
-            $this->gae_log(LOG_DEBUG, "TRANSFER ERROR - " . $status);
             return $status;
         }
     }
@@ -834,7 +862,7 @@ class helpers
                 $extraction['current']['endpoint'],
                 $extraction['current']['error_response'],
                 json_encode($extraction['current']['info']));
-            $this->live_log($extraction, $log_values);
+            $extraction = $this->live_log($extraction, $log_values);
             return $extraction;
         }
         return $extraction;
@@ -868,7 +896,8 @@ class helpers
         return $response;
     }
 
-    function move_tmp_to_final_file($extraction) {
+    // Rename tmp file to final name (delete & create)
+    function rename_tmp_to_final_file($extraction) {
 
         $bucket = $extraction['global']['google_storage']['bucket'];
         $sourceObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
@@ -878,6 +907,23 @@ class helpers
 
         if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
 
+    }
+
+    // Actions for VM api job
+    function actions_jobs_executor_vm($extraction, $action) {
+
+        //Refresh access token
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $refresh_token = $extraction['global']['google_compute']['refresh_token'];
+        $api_version = $extraction['global']['google_compute']['api_version'];
+
+        $access_token = $this->get_access_token($client_id, $client_secret, $refresh_token);
+
+        $headers = array('content-type: application/json', 'authorization : Bearer ' . $access_token);
+        $endpoint = "https://www.googleapis.com/compute/$api_version/projects/annalect-api-jobs/zones/asia-south1-a/instances/jobs-executor-vm/$action";
+
+        return $this->set_curl($headers, $endpoint, null, 'POST');
     }
 
 }

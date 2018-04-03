@@ -1,216 +1,6 @@
 <?php
 
-
-
-
-
-
-
-
-
-
 // Global settings at: global-config.php
-// https://tech.yandex.com/direct/doc/ref-v5/campaigns/get-docpage/
-// YANDEX
-/*
-
-
-//    __   __              _
-//    \ \ / /_ _ _ __   __| | _____  __
-//     \ V / _` | '_ \ / _` |/ _ \ \/ /
-//      | | (_| | | | | (_| |  __/>  <
-//      |_|\__,_|_| |_|\__,_|\___/_/\_\
-
-array_push($extractions['items'], array(
-    'api' => 'yandex',
-    'api_type' => 'yandex',
-    'extraction_group' => 'omd-jumeirah',
-    'extraction_name' => 'campaigns-1',
-    'report_type' => "campaigns",
-    'credential_email' => 'unknown',
-    'refresh_token' => "ARcmuAAAAypgoIpncjMnTqeAd6tAnP4rUA", //permanent token
-    'startDate' => "2017-01-01",
-    'endDate' => "2017-12-31",
-    'accountsData' => array(
-        array("clientLogin "=>"jumeirahrussia")
-    ),
-    'report_header' => 'advertiser,accountType,campaign,campaignId,clicks,cost,impr,date,deviceSegment',
-    'json_request' => '{
-        "downloadFormat":"csv",
-        "maxRowsPerFile": 1000000,
-        "reportType":"campaign",
-        "statisticsCurrency":"usd",
-        "columns": [{"columnName":"advertiser"},
-        {"columnName":"accountType"},
-        {"columnName":"campaign"},
-        {"columnName":"campaignId"},
-        {"columnName":"clicks"},
-        {"columnName":"cost"},
-        {"columnName":"impr"},
-        {"columnName":"date"},
-        {"columnName":"deviceSegment"}],
-        "reportScope": {"agencyId":"20700000001079548"},
-        "timeRange": {"startDate":"2018-03-01", "endDate":"2018-03-01"}
-    }'
-));
-*/
-
-
-//     ____  ____
-//    |  _ \/ ___|
-//    | | | \___ \
-//    | |_| |___) |
-//    |____/|____/
-
-
-/*
-array_push($extractions['items'], array(
-    'api' => 'ds',
-    'api_type' => 'google',
-    'extraction_group' => 'omd-jumeirah',
-    'extraction_name' => 'ds-cmp',
-    'report_type' => "campaign",
-    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
-    'refresh_token' => "1/SzshmFTmTYBoFJzOpjw2f1hVfK_Ch6pBIdxg3f0VoZU",
-    'startDate' => "2017-01-01",
-    'endDate' => "2017-12-31",
-    'accountsData' => array(
-        array("agencyId"=>"20700000001079548", "agencyName"=>"Jumeirah OMG DS UAE - AED")
-    ),
-    'report_header' => 'advertiser,accountType,campaign,campaignId,clicks,cost,impr,date,deviceSegment',
-    'json_request' => '{
-        "downloadFormat":"csv",
-        "maxRowsPerFile": 1000000,
-        "reportType":"campaign",
-        "statisticsCurrency":"usd",
-        "columns": [{"columnName":"advertiser"},
-        {"columnName":"accountType"},
-        {"columnName":"campaign"},
-        {"columnName":"campaignId"},
-        {"columnName":"clicks"},
-        {"columnName":"cost"},
-        {"columnName":"impr"},
-        {"columnName":"date"},
-        {"columnName":"deviceSegment"}],
-        "reportScope": {"agencyId":"20700000001079548"},
-        "timeRange": {"startDate":"2018-03-01", "endDate":"2018-03-01"}
-    }'
-));
-*/
-
-
-
-//GA accounts
-
-
-//      ____      _                _       _   _
-//     / ___|    / \   _ __   __ _| |_   _| |_(_) ___ ___
-//    | |  _    / _ \ | '_ \ / _` | | | | | __| |/ __/ __|
-//    | |_| |_ / ___ \| | | | (_| | | |_| | |_| | (__\__ \
-//     \____(_)_/   \_\_| |_|\__,_|_|\__, |\__|_|\___|___/
-//                                   |___/
-
-
-/*
-$jumeirah_account = array(
-    array('accountId' => '1295942', 'propertyId' => 'UA-1295942-16', 'viewId' => '96072017', 'viewName' => 'J.com - group level - _main view')
-);
-
-
-
-array_push($extractions['items'], array(
-    'api' => 'ga',
-    'api_type' => 'google',
-    'extraction_group' => 'omd-jumeirah',
-    'extraction_name' => 'report1',
-    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
-    'refresh_token' => '1/eV7uEWf1jd-LqO1gC4RSmq6zlv93kVQ9fqvDLHrCtWY4ahlmxr8gwn-x3kuAl2q2',
-    'accountsData' => $jumeirah_account,
-    'project' => 'jumeirah_search_upload_gc',
-    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:goal4Completions,ga:goal6Completions,ga:goal10Completions,ga:uniquePurchases,ga:itemsPerPurchase,ga:revenuePerItem,ga:revenuePerTransaction',
-    'dimensions' => array(
-        array("name"=> "ga:sourceMedium"),
-        array("name"=> "ga:adwordsCustomerName"),
-        array("name"=> "ga:campaign"),
-        array("name"=> "ga:deviceCategory"),
-        array("name"=> "ga:date")),
-    'metrics' => array(
-        array("expression"=> "ga:goal4Completions"),
-        array("expression"=> "ga:goal6Completions"),
-        array("expression"=> "ga:goal10Completions"),
-        array("expression"=> "ga:uniquePurchases"),
-        array("expression"=> "ga:itemsPerPurchase"),
-        array("expression"=> "ga:revenuePerItem"),
-        array("expression"=> "ga:revenuePerTransaction")),
-    'filters' => '',
-    'pageSize' => '10000',
-    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
-));
-
-
-array_push($extractions['items'], array(
-    'api' => 'ga',
-    'api_type' => 'google',
-    'extraction_group' => 'omd-jumeirah',
-    'extraction_name' => 'report2',
-    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
-    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
-    'accountsData' => $jumeirah_account,
-    'project' => 'jumeirah_search_upload_gc',
-    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:sessions,ga:percentNewSessions,ga:transactions,ga:itemQuantity,ga:transactionRevenue,ga:goal9Completions,ga:goal3Completions,ga:goal20Completions,ga:goal13Completions,ga:goal14Completions',
-    'dimensions' => array(
-        array("name"=> "ga:sourceMedium"),
-        array("name"=> "ga:adwordsCustomerName"),
-        array("name"=> "ga:campaign"),
-        array("name"=> "ga:deviceCategory"),
-        array("name"=> "ga:date")),
-    'metrics' => array(
-        array("expression"=> "ga:sessions"),
-        array("expression"=> "ga:percentNewSessions"),
-        array("expression"=> "ga:transactions"),
-        array("expression"=> "ga:itemQuantity"),
-        array("expression"=> "ga:transactionRevenue"),
-        array("expression"=> "ga:goal9Completions"),
-        array("expression"=> "ga:goal3Completions"),
-        array("expression"=> "ga:goal20Completions"),
-        array("expression"=> "ga:goal13Completions"),
-        array("expression"=> "ga:goal14Completions")),
-    'filters' => '',
-    'pageSize' => '10000',
-    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
-));
-
-array_push($extractions['items'], array(
-    'api' => 'ga',
-    'api_type' => 'google',
-    'extraction_group' => 'omd-jumeirah',
-    'extraction_name' => 'report3',
-    'credential_email' => 'annalectautomation@gmail.com', //change to omduae@annalect.com
-    'refresh_token' => '1/DJR3AwAR8UmktLObfW692VE-yY4XSXIzPC4VePm4UDwSCXke7kLbNPBZpINcvxyu',
-    'accountsData' => $jumeirah_account,
-    'project' => 'jumeirah_search_upload_gc',
-    'headers' => 'ga:sourceMedium,ga:adwordsCustomerName,ga:campaign,ga:deviceCategory,ga:date,ga:impressions,ga:adClicks,ga:adCost',
-    'dimensions' => array(
-        array("name"=> "ga:sourceMedium"),
-        array("name"=> "ga:adwordsCustomerName"),
-        array("name"=> "ga:campaign"),
-        array("name"=> "ga:deviceCategory"),
-        array("name"=> "ga:date")),
-    'metrics' => array(
-        array("expression"=> "ga:impressions"),
-        array("expression"=> "ga:adClicks"),
-        array("expression"=> "ga:adCost")),
-    'filters' => '',
-    'pageSize' => '10000',
-    'dateRanges' => array(array("endDate"=> $extractions['global']['ga']['yesterday'], "startDate"=> $extractions['global']['ga']['last_6months']))
-));
-
-*/
-
-
-
-
-
 
 //     _____              _                 _
 //    |  ___|_ _  ___ ___| |__   ___   ___ | | __
@@ -318,9 +108,6 @@ $phd_accounts_data = array(
     array('accountId' => 'act_1494151217527709', 'accountName' => 'Virgin Atlantic'),
     array('accountId' => 'act_1842459932696834', 'accountName' => 'Volkswagen')
 );
-
-
-//AIO Facebook PHD
 
 array_push($extractions['items'], array(
     'api' => 'facebook',
@@ -828,7 +615,7 @@ array_push($extractions['items'], array(
         "dimensions": [
         {"name": "dfa:campaign"},
         {"name": "dfa:site"},
-        {"name": "dfa:date"},				
+        {"name": "dfa:date"},               
         {"name": "dfa:placement"},
         {"name": "dfa:creativeSize"},
         {"name": "dfa:advertiser"},
@@ -1069,7 +856,7 @@ array_push($extractions['items'], array(
         },
         "params": {
             "type": "TYPE_TRUEVIEW",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TRUEVIEW_AD_GROUP_AD_ID", "FILTER_TRUEVIEW_AD_GROUP_ID","FILTER_ADVERTISER_CURRENCY"],
+            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TRUEVIEW_AD_GROUP_ID","FILTER_ADVERTISER_CURRENCY", "FILTER_MOBILE_DEVICE_TYPE"],
             "filters": [             
              {
                 "type": "FILTER_PARTNER",
@@ -1147,7 +934,7 @@ array_push($extractions['items'], array(
         },
         "params": {
             "type": "TYPE_TRUEVIEW",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TRUEVIEW_AD_GROUP_AD_ID", "FILTER_TRUEVIEW_AD_GROUP_ID","FILTER_ADVERTISER_CURRENCY"],
+            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TRUEVIEW_AD_GROUP_ID","FILTER_ADVERTISER_CURRENCY", "FILTER_MOBILE_DEVICE_TYPE"],
             "filters": [             
              {
                 "type": "FILTER_PARTNER",
@@ -1165,89 +952,3 @@ array_push($extractions['items'], array(
 
 
 
-
-/*
-
-// COOKIE REACH
-// Extra reports not for AIO
-// Test if works for whole year
-
-array_push($extractions['items'], array(
-    'api' => 'dbm',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'reach',
-    'max_execution_sec' => 3600,
-    'report_type' => "TYPE_REACH_AND_FREQUENCY",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
-    'startDate' => $extractions['global']['dbm']['historic'],
-    'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
-    'json_request' => '{
-        "metadata": {
-            "title": "xyz",
-            "dataRange": "PREVIOUS_DAY",
-            "format": "CSV",
-            "sendNotification": false
-        },
-        "params": {
-            "type": "TYPE_REACH_AND_FREQUENCY",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE","FILTER_TARGETED_USER_LIST", "FILTER_CREATIVE_ID","FILTER_COUNTRY"],
-            "filters": [
-             {
-                "type": "FILTER_PARTNER",
-                "value": "407"
-            }],
-            "metrics": ["METRIC_COOKIE_REACH_IMPRESSION_REACH"],
-            "includeInviteData": false
-        },
-        "schedule": {
-            "frequency": "ONE_TIME",
-            "nextRunTimezoneCode": "Asia/Dubai"
-        }
-      }'
-));
-
-// AUDIENCE
-// Extra reports not for AIO
-// Test if works for whole year
-
-array_push($extractions['items'], array(
-    'api' => 'dbm',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'audience',
-    'max_execution_sec' => 3600,
-    'report_type' => "TYPE_AUDIENCE_PERFORMANCE",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
-    'startDate' => $extractions['global']['dbm']['historic'],
-    'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
-    'json_request' => '{
-        "metadata": {
-            "title": "xyz",
-            "dataRange": "PREVIOUS_DAY",
-            "format": "CSV",
-            "sendNotification": false
-        },
-        "params": {
-            "type": "TYPE_AUDIENCE_PERFORMANCE",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TARGETED_USER_LIST", "FILTER_USER_LIST", "FILTER_USER_LIST_FIRST_PARTY", "FILTER_USER_LIST_THIRD_PARTY", "FILTER_CREATIVE_ID","FILTER_ADVERTISER_CURRENCY"],
-            "filters": [
-             {
-                "type": "FILTER_PARTNER",
-                "value": "407"
-            }],
-            "metrics": ["METRIC_IMPRESSIONS", "METRIC_CLICKS", "METRIC_TOTAL_CONVERSIONS", "METRIC_REVENUE_ADVERTISER", "METRIC_MEDIA_COST_ADVERTISER",  "METRIC_RICH_MEDIA_VIDEO_FIRST_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_MIDPOINTS", "METRIC_RICH_MEDIA_VIDEO_THIRD_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_COMPLETIONS"],
-            "includeInviteData": false
-        },
-        "schedule": {
-            "frequency": "ONE_TIME",
-            "nextRunTimezoneCode": "Asia/Dubai"
-        }
-      }'
-));
-
-*/

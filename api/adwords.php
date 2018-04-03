@@ -33,8 +33,8 @@ class adwords
             $api_response[0],
             $error_reason);
         syslog(LOG_DEBUG, json_encode($log_values));
-        $helpers->live_log($extraction, $log_values);
-
+        $extraction = $helpers->live_log($extraction, $log_values);
+        return $extraction;
     }
 
     // Google Adwords API call (HTTP API request and AND conditions)

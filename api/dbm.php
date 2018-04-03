@@ -104,7 +104,7 @@ class dbm
         $api_response = $this->get_report_url($extraction);
         $status = $api_response->reports[0]->metadata->status->state;
 
-        $this->helpers->live_log($extraction, Array("STATUS", $status));
+        $extraction = $this->helpers->live_log($extraction, Array("STATUS", $status));
 
 
         if ($status=== "DONE") {
@@ -258,7 +258,7 @@ class dbm
                 $extraction['report_type'],
                 "DOWNLOAD-RANGE-$current_ext-START",
                 $this->helpers->bytesToMBytes(strlen($raw_data)));
-            $this->helpers->live_log($extraction, $log_values);
+            $extraction = $this->helpers->live_log($extraction, $log_values);
 
 
             //clean header and empty result
@@ -289,7 +289,7 @@ class dbm
                 $extraction['report_type'],
                 "DOWNLOAD-RANGE-$current_ext-END",
                 $this->helpers->bytesToMBytes(strlen($raw_data)));
-            $this->helpers->live_log($extraction, $log_values);
+            $extraction = $this->helpers->live_log($extraction, $log_values);
 
         }
 

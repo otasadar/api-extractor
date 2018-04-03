@@ -17,7 +17,7 @@ $headers = array('content-type: application/json', 'authorization : Bearer ' . $
 
 //End point
 $api_version = $extractions['global']['google_bigquery']['api_version'];
-$endpoint = "https://content.googleapis.com/bigquery/$api_version/projects/annalect-api-jobs/jobs?alt=json";
+$endpoint = "https://www.googleapis.com/bigquery/$api_version/projects/annalect-api-jobs/jobs?alt=json";
 $schema = file_get_contents("gs://$bucket/config/{$_GET['schema']}" );
 
 //Payload data

@@ -61,9 +61,7 @@ foreach ($extractions['items'] as $key => $extraction) {
     $extraction['extraction_id'] = rand();
 
     $task_name = $extraction['task_name']."-".$extraction['extraction_id'];
-    // google tasks could be duplicates, added random id for avoid collisions in runtime files
-    $extraction['extraction_name'] = $extraction['extraction_name'].'-tmp-'.$extraction['extraction_id'];
-    $task = new PushTask('/run-tasks-'.$extraction['task_name'], ['extraction' => $extraction], ['name' => $task_name]);
+    $task = new PushTask('/run-tasks-'.$extraction['task_name'].'-'.$extraction['extraction_id'], ['extraction' => $extraction], ['name' => $task_name]);
     $task->add($extractions['global']['queue']);
     $i++;
     echo "running task $i - accountsIds:".count($extraction['accountsData'])." - $task_name <br/>";

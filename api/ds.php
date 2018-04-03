@@ -94,7 +94,7 @@ class ds
         $status = $api_response->isReportReady;
 
         $log_values = Array($extraction['current']['agencyId'],$extraction['current']['agencyName'],"isReportReady", $status);
-        $this->helpers->live_log($extraction,$log_values);
+        $extraction = $this->helpers->live_log($extraction,$log_values);
 
 
         if ($status=== true) {

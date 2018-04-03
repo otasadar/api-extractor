@@ -34,7 +34,10 @@ $extraction['global']['google_sheet']['access_token'] = $helpers->get_access_tok
 $extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
 $extraction = $helpers->live_log($extraction, Array("Start Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
 
-//$helpers->gae_log(LOG_DEBUG, "check json_request" . $extraction);
+// google tasks could be duplicates, added random id for avoid collisions in runtime files
+// two ids for identify with task retries
+$extraction['extraction_id'] = $extraction['extraction_id'].'-'.rand();
+$extraction['extraction_name'] = $extraction['extraction_name'].'-tmp-'.$extraction['extraction_id'];
 
 
 
@@ -322,7 +325,10 @@ switch ($extraction['api']) {
 
                 // start pull data
                 $extraction = $dcm->start($extraction, $profileId);
-                if (isset($extraction['current']['error'])) continue;
+                if (isset($extraction['current']['error']))  {
+                    unset ($extraction['current']['error']);
+                    continue;
+                }
 
             }
 
@@ -352,7 +358,7 @@ switch ($extraction['api']) {
                         "ERROR",
                         $raw_data);
                     $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                    $helpers->live_log($extraction, $log_values);
+                    $extraction = $helpers->live_log($extraction, $log_values);
                     continue;
                 }
 
@@ -374,7 +380,7 @@ switch ($extraction['api']) {
                     $helpers->return_isset($extraction['current']['networkName']),
                     $result,
                     mb_strlen($raw_data));
-                $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                $helpers->gae_log(LOG_DEBUG, "REPORT OK:".json_encode($log_values));
                 $extraction = $helpers->live_log($extraction, $log_values);
             }
 
@@ -384,6 +390,8 @@ switch ($extraction['api']) {
 
     case "dbm":
 
+        // no temp id for dbm
+        $extraction['extraction_name'] = str_replace('-tmp-'.$extraction['extraction_id'], '', $extraction['extraction_name']);
 
         $extraction['json_request'] = json_decode($extraction['json_request']);
         $extraction['json_request']->reportDataStartTimeMs = strtotime($extraction['startDate']) * 1000;
@@ -398,7 +406,11 @@ switch ($extraction['api']) {
         $extraction['current'] = '';
         $extraction = $helpers->check_access_token($extraction);
         $extraction = $dbm->start($extraction);
-        if (isset($extraction['current']['error'])) die;
+        if (isset($extraction['current']['error'])) {
+            $helpers->gae_log(LOG_DEBUG, "---killed process ");
+            die;
+        }
+
         $extraction = $helpers->live_log($extraction, array("START"));
 
         // Second part : Wait until URL is generated
@@ -428,7 +440,7 @@ switch ($extraction['api']) {
             $content_status = ($extraction['csv_size']) ?  'OK' : 'EMPTY';
             $extraction = $helpers->live_log($extraction, array($content_status, $helpers->bytesToMBytes($extraction['csv_size']), $report_url));
 
-            // Get active taks
+            // Get active tasks
             $json_tasks = $helpers->get_current_tasks($extraction);
             $json_tasks = json_decode($json_tasks);
             $task_pattern = "{$extraction['api']}-{$extraction['extraction_group']}";
@@ -439,7 +451,19 @@ switch ($extraction['api']) {
                 }
             }
             $helpers->gae_log(LOG_DEBUG, "active-task:".$active_task);
-            if ($active_task === 1) $helpers->save_urls_data_to_buckets($extraction);
+
+
+            if ($active_task === 1)  {
+                $response = $helpers->actions_jobs_executor_vm($extraction, 'start');
+                $helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor'.$response);
+
+                sleep(180);
+                $extraction = $helpers->save_urls_data_to_buckets($extraction);
+                $helpers->actions_jobs_executor_vm($extraction, 'stop');
+                $helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor'.$response);
+
+
+            }
 
         }
 
@@ -658,7 +682,9 @@ switch ($extraction['api']) {
         break;
 }
 
-$helpers->move_tmp_to_final_file($extraction);
+$extraction = $helpers->live_log($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
+// dbm is direct
+if ($extraction['api'] !== 'dbm') $helpers->rename_tmp_to_final_file($extraction);
 
 
 
