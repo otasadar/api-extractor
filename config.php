@@ -11,6 +11,7 @@
 
 
 $phd_accounts_data = array(
+    array('accountId' => 'act_1830058357006480', 'accountName' => 'H&M Kuwait'),
     array('accountId' => 'act_1695946100681552', 'accountName' => 'Al Futtaim - F&F'),
     array('accountId' => 'act_1691511334458362', 'accountName' => 'Al Futtaim - Honda'),
     array('accountId' => 'act_1685815405027955', 'accountName' => 'Al Futtaim - Lexus'),
@@ -195,6 +196,8 @@ $phd_accounts_data_display = array(
 );
 
 $phd_accounts_data_search = array(
+    array('accountId' => '176-794-7976', 'accountName' => 'H&M Kuwait Search'),
+    array('accountId' => '428-668-7943', 'accountName' => 'Mothercare Kuwait Search'),
     array('accountId' => '100-624-9592', 'accountName' => 'AFGRE'),
     array('accountId' => '324-299-8908', 'accountName' => 'Al Futtaim Automall'),
     array('accountId' => '220-611-1827', 'accountName' => 'Al Futtaim - Bebe Arabia'),
@@ -350,80 +353,14 @@ array_push($extractions['items'], array(
     'api' => 'adwords',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'adwords_campaign1',
+    'extraction_name' => 'adwords_campaign',
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
     'accountsData' => $phd_accounts_data_display,
     'report_type' => 'CAMPAIGN_PERFORMANCE_REPORT',
     'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
+    'split_day_period' => '60',
     'startDate' => '20170601',
-    'endDate' => '20170801'
-));
-
-
-// AIO [PHD - Cmp 2]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'adwords_campaign2',
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_data_display,
-    'report_type' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => '20170802',
-    'endDate' => '20171001'
-));
-
-
-// AIO [PHD - Cmp 3]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'adwords_campaign3',
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_data_display,
-    'report_type' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => '20171002',
-    'endDate' => '20171201'
-));
-
-
-// AIO [PHD - Cmp 4]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'adwords_campaign4',
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_data_display,
-    'report_type' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => '20171202',
-    'endDate' => '20180201'
-));
-
-// AIO [PHD - Cmp 5]
-array_push($extractions['items'], array(
-
-    'api' => 'adwords',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'adwords_campaign5',
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => '1/CuF84U4cVK1aa9paWHCk1MJniYGi1nAvPBPahSYZ_Ps',
-    'accountsData' => $phd_accounts_data_display,
-    'report_type' => 'CAMPAIGN_PERFORMANCE_REPORT',
-    'metrics' => 'Date,AccountDescriptiveName,CampaignName,ImpressionReach,AverageFrequency',
-    'startDate' => '20180202',
     'endDate' => $extractions['global']['adwords']['yesterday']
 ));
 
@@ -729,7 +666,7 @@ array_push($extractions['items'], array(
     'credential_email' => 'phduae@annalect.com',
     'refresh_token' => '1/E7JWUMvbVu9v_eQKBBCvPOP6m1vtSUrG58LGyTEXn74',
     'accountsData' => $phd_account_data_std_cross,
-    'report_header' => "AdvertiserId,Advertiser,Campaign,Date,Exclusive Click Reach,Exclusive Impression Reach,",
+    'report_header' => "AdvertiserId,Advertiser,Campaign,Date,Exclusive Click Reach,Exclusive Impression Reach",
     'json_request' => '{
         "name": "test alex",
         "type": "CROSS_DIMENSION_REACH",
@@ -794,20 +731,23 @@ array_push($extractions['items'], array(
 //    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
 
 
-// Basic - Partner Accuen
+$dbm_accounts = array(
+    array('partnerId' => '407', 'partnerName' => 'Accuen MENA FZLLC', 'refreshToken' => '1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko', 'credentialEmail' => 'phduae@annalect.com'),
+    array('partnerId' => '2406541', 'partnerName' => 'PHD - MH Alshaya', 'refreshToken' => '1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko', 'credentialEmail' => 'phduae@annalect.com'),
+
+);
+
 array_push($extractions['items'], array(
     'api' => 'dbm',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'general-accuen',
+    'extraction_name' => 'dbm_general',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_GENERAL",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'report_header' => "Advertiser,Advertiser ID,Advertiser Currency,Insertion Order,Insertion Order ID,Line Item,Line Item ID,Creative,Creative ID,Impressions,Billable Impressions,Clicks,Click Rate (CTR),Total Conversions,Post-Click Conversions,Post-View Conversions,Revenue (Adv Currency),Media Cost (Advertiser Currency)",
     'startDate' => $extractions['global']['dbm']['historic'],
     'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
+    'accountsData' => $dbm_accounts,
     'json_request' => '{
         "metadata": {
             "title": "xyz",
@@ -833,20 +773,16 @@ array_push($extractions['items'], array(
       }'
 ));
 
-
-// TrueView - Partner Accuen
 array_push($extractions['items'], array(
     'api' => 'dbm',
     'api_type' => 'google',
     'extraction_group' => 'aio_phd',
-    'extraction_name' => 'trueview-accuen',
+    'extraction_name' => 'dbm_trueview',
     'max_execution_sec' => 3600,
     'report_type' => "TYPE_TRUEVIEW",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
     'startDate' => $extractions['global']['dbm']['historic'],
     'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
+    'accountsData' => $dbm_accounts,
     'json_request' => '{
         "metadata": {
             "title": "task-name",
@@ -871,84 +807,3 @@ array_push($extractions['items'], array(
         }
       }'
 ));
-
-// Basic - Partner Alshaya
-array_push($extractions['items'], array(
-    'api' => 'dbm',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'general-alshaya',
-    'max_execution_sec' => 3600,
-    'report_type' => "TYPE_GENERAL",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
-    'report_header' => "Advertiser,Advertiser ID,Advertiser Currency,Insertion Order,Insertion Order ID,Line Item,Line Item ID,Creative,Creative ID,Impressions,Billable Impressions,Clicks,Click Rate (CTR),Total Conversions,Post-Click Conversions,Post-View Conversions,Revenue (Adv Currency),Media Cost (Advertiser Currency)",
-    'startDate' => $extractions['global']['dbm']['historic'],
-    'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
-    'json_request' => '{
-        "metadata": {
-            "title": "xyz",
-            "dataRange": "CUSTOM_DATES",
-            "format": "CSV",
-            "sendNotification": false
-        },
-        "params": {
-            "type": "TYPE_GENERAL",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_TARGETED_USER_LIST", "FILTER_CREATIVE_ID", "FILTER_ACTIVITY_ID", "FILTER_CREATIVE_WIDTH", "FILTER_CREATIVE_HEIGHT", "FILTER_CREATIVE_SIZE", "FILTER_CREATIVE_TYPE", "FILTER_COUNTRY", "FILTER_MOBILE_DEVICE_TYPE", "FILTER_ADVERTISER_CURRENCY", "FILTER_CREATIVE_TYPE", "FILTER_MOBILE_DEVICE_TYPE"],
-            "filters": [
-             {
-                "type": "FILTER_PARTNER",
-                "value": "2406541"
-            }],
-            "metrics": ["METRIC_IMPRESSIONS", "METRIC_CLICKS", "METRIC_TOTAL_CONVERSIONS", "METRIC_REVENUE_ADVERTISER", "METRIC_RICH_MEDIA_VIDEO_PLAYS", "METRIC_RICH_MEDIA_VIDEO_FIRST_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_MIDPOINTS", "METRIC_RICH_MEDIA_VIDEO_THIRD_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_COMPLETIONS"],
-            "includeInviteData": false
-        },
-        "schedule": {
-            "frequency": "ONE_TIME",
-            "nextRunTimezoneCode": "Asia/Dubai"
-        }
-      }'
-));
-
-
-// TrueView - Partner Alshaya
-array_push($extractions['items'], array(
-    'api' => 'dbm',
-    'api_type' => 'google',
-    'extraction_group' => 'aio_phd',
-    'extraction_name' => 'trueview-alshaya',
-    'max_execution_sec' => 3600,
-    'report_type' => "TYPE_TRUEVIEW",
-    'credential_email' => 'phduae@annalect.com',
-    'refresh_token' => "1/s0_TPrP4n_EZ2rwLcpMnKtWY5lV2Q5giBNBY-55kPko",
-    'startDate' => $extractions['global']['dbm']['historic'],
-    'endDate' => $extractions['global']['dbm']['yesterday'],
-    'accountsData' => 'all',
-    'json_request' => '{
-        "metadata": {
-            "title": "task-name",
-            "dataRange": "CUSTOM_DATES",
-            "format": "CSV",
-            "sendNotification": false
-        },
-        "params": {
-            "type": "TYPE_TRUEVIEW",
-            "groupBys": ["FILTER_DATE", "FILTER_ADVERTISER", "FILTER_INSERTION_ORDER", "FILTER_ORDER_ID", "FILTER_LINE_ITEM", "FILTER_LINE_ITEM_TYPE", "FILTER_TRUEVIEW_AD_GROUP_ID","FILTER_ADVERTISER_CURRENCY", "FILTER_MOBILE_DEVICE_TYPE"],
-            "filters": [             
-             {
-                "type": "FILTER_PARTNER",
-                "value": "2406541"
-            }],
-            "metrics": ["METRIC_IMPRESSIONS", "METRIC_TRUEVIEW_VIEWS", "METRIC_CLICKS","METRIC_REVENUE_ADVERTISER", "METRIC_MEDIA_COST_ADVERTISER",  "METRIC_RICH_MEDIA_VIDEO_FIRST_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_MIDPOINTS", "METRIC_RICH_MEDIA_VIDEO_THIRD_QUARTILE_COMPLETES", "METRIC_RICH_MEDIA_VIDEO_COMPLETIONS"],
-            "includeInviteData": false
-        },
-        "schedule": {
-            "frequency": "ONE_TIME",
-            "nextRunTimezoneCode": "Asia/Dubai"
-        }
-      }'
-));
-
-
-

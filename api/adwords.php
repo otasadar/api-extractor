@@ -75,6 +75,7 @@ class adwords
         //Payload data
         //$payload = '__fmt=CSV&__rdquery=' . ' SELECT ' . $metrics . ' FROM ' . $report . ' ' . 'DURING ' . $date;
         $payload = "__fmt=CSV&__rdquery= SELECT $metrics FROM $report DURING $startDate,$endDate";
+        //$helpers->gae_log(LOG_DEBUG, "adw payload:".$payload);
 
         //CURL request
 
@@ -94,37 +95,7 @@ class adwords
         }
     }
 
-    // Split dates into smaller period dates
-    function split_dates($start_date_str, $split_day_period) {
 
-        $now = new DateTime();
-        $start_date = new DateTime($start_date_str);
-        $since_start = $start_date->diff(new DateTime($now->format('Ymd')));
-        $diff = $since_start->days;
-
-        function addDays ($date, $days) {
-            $date = new DateTime($date);
-            date_modify($date, "+$days day");
-            return date_format($date, 'Ymd');
-        }
-
-        $data_periods = [];
-
-        for ($i = 0; $i <= $diff; $i+=$split_day_period) {
-
-            $tmp_period = $i+$split_day_period-1;
-            if ($tmp_period > $diff) {
-                $tmp_period = $diff;
-            }
-            $startDate = addDays ($start_date_str, $i);
-            $endDate = addDays ($start_date_str, $tmp_period);
-
-            $data_periods[] = array( 'startDate'=> $startDate , 'endDate'=> $endDate  );
-
-        }
-
-        return $data_periods;
-    }
 
 
 }

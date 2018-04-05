@@ -1,6 +1,6 @@
 #application: annalect-api-jobs
-#service: api-extractor-staging
-service: api-extractor
+service: api-extractor-staging
+#service: api-extractor
 
 #version: v1
 
@@ -42,6 +42,10 @@ handlers:
 
 - url: /run
   script: run.php
+  secure: always
+
+- url: /log
+  script: log.php
   secure: always
 
 - url: /run-tasks-.+

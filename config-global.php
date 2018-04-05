@@ -61,9 +61,9 @@ $extractions['global']['google_compute']['api_version'] = 'v1';
 $extractions['global']['google_compute']['refresh_token'] = '1/sVw1xELv02Lqo-7zuu45flooZL8u8OOn07pxP6NU7Q8';
 $extractions['global']['google_compute']['email_credential'] = 'unknown';
 
-// AdWords API explorer : https://developers.google.com/adwords/api/docs/reference/v201705/ReportDefinitionService
+// AdWords API explorer : https://developers.google.com/adwords/api/docs/reference/v201802/ReportDefinitionService
 // AdWords Queries Tester : https://www.awql.me/adwords
-$extractions['global']['adwords']['api_version'] = 'v201705';
+$extractions['global']['adwords']['api_version'] = 'v201802';
 $extractions['global']['adwords']['today'] = date('Ymd'); // YYYYMMDD
 $extractions['global']['adwords']['yesterday'] = date("Ymd", strtotime(date("Ymd", strtotime($extractions['global']['adwords']['today'])) . " -1 day"));
 $extractions['global']['adwords']['last_6months'] = date("Ymd", strtotime(date("Ymd", strtotime($extractions['global']['adwords']['today'])) . " -6 month"));

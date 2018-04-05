@@ -268,6 +268,112 @@ class dcm
      * DCM Helpers:
      */
 
+    // DCM preparing_report_type_vars
+    function preparing_report_type_vars ($extraction) {
+        // Report Type vars
+        $profileId = $extraction['current']['profileId'];
+        switch ($extraction['report_type']) {
+
+            //prepare request
+            case "STANDARD":
+                // advertiserId validations
+                $advertiserId = $extraction['current']['advertiserId'];
+                $advertiserIdsValidator = $this->check_advertiserIds($profileId, $extraction);
+                if (!in_array($advertiserId, $advertiserIdsValidator)) {
+
+                    $log_values = Array(
+                        $profileId,
+                        $this->helpers->return_isset($extraction['current']['advertiserId']),
+                        $this->helpers->return_isset($extraction['current']['floodlightConfigId']),
+                        $extraction['current']['advertiserName'],
+                        $extraction['current']['networkName'],
+                        "ERROR",
+                        "Advertiser Id not found");
+                    $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                    $extraction = $this->helpers->live_log($extraction, $log_values);
+                    $extraction['current']['error'] = true;
+                }
+
+                $extraction['json_request'] = json_decode($extraction['json_request']);
+                if (isset($extraction['json_request']->criteria->dateRange->endDate)) {
+                    if ($extraction['json_request']->criteria->dateRange->endDate === 'YESTERDAY') {
+                        $extraction['json_request']->criteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                    }
+                }
+                $extraction['json_request']->criteria->dimensionFilters[0]->dimensionName = "dfa:advertiser";
+                $extraction['json_request']->criteria->dimensionFilters[0]->id = $advertiserId;
+                $extraction['json_request'] = json_encode($extraction['json_request']);
+                break;
+
+            case "FLOODLIGHT":
+                // floodlightConfigIds validation
+                $floodlightConfigId = $extraction['current']['floodlightConfigId'];
+                $floodlightConfigIdsValidator = $this->check_floodlightConfigIds($profileId, $extraction);
+                if (!in_array($floodlightConfigId, $floodlightConfigIdsValidator)) {
+
+                    $log_values = Array(
+                        $profileId,
+                        $this->helpers->return_isset($extraction['current']['advertiserId']),
+                        $this->helpers->return_isset($extraction['current']['floodlightConfigId']),
+                        $extraction['current']['advertiserName'],
+                        $extraction['current']['networkName'],
+                        "ERROR",
+                        "FloodConfigId not found");
+                    $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                    $extraction = $this->helpers->live_log($extraction, $log_values);
+                    $extraction['current']['error'] = true;
+
+                }
+
+                // edit report json request dynamically
+                $extraction['json_request'] = json_decode($extraction['json_request']);
+                if (isset($extraction['json_request']->floodlightCriteria->dateRange->endDate)) {
+                    if ($extraction['json_request']->floodlightCriteria->dateRange->endDate === 'YESTERDAY') {
+                        $extraction['json_request']->floodlightCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                    }
+                }
+                $extraction['json_request']->floodlightCriteria->floodlightConfigId->value = $floodlightConfigId;
+                $extraction['json_request'] = json_encode($extraction['json_request']);
+                break;
+
+            case "CROSS_DIMENSION_REACH":
+                // advertiserId validations
+                $advertiserId = $extraction['current']['advertiserId'];
+                $advertiserIdsValidator = $this->check_advertiserIds($profileId, $extraction);
+                if (!in_array($advertiserId, $advertiserIdsValidator)) {
+
+                    $log_values = Array(
+                        $profileId,
+                        $this->helpers->return_isset($extraction['current']['advertiserId']),
+                        $this->helpers->return_isset($extraction['current']['floodlightConfigId']),
+                        $extraction['current']['advertiserName'],
+                        $extraction['current']['networkName'],
+                        "ERROR",
+                        "Advertiser Id not found");
+                    $this->helpers->gae_log(LOG_DEBUG, json_encode($log_values));
+                    $extraction = $this->helpers->live_log($extraction, $log_values);
+                    $extraction['current']['error'] = true;
+                }
+
+                $extraction['json_request'] = json_decode($extraction['json_request']);
+                if (isset($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate)) {
+                    if ($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate === 'YESTERDAY') {
+                        $extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                    }
+                }
+                $extraction['json_request']->crossDimensionReachCriteria->dimensionFilters[0]->id = $advertiserId;
+                $extraction['json_request'] = json_encode($extraction['json_request']);
+                break;
+
+            default:
+                $this->helpers->gae_log(LOG_DEBUG, "Report Type not provided");
+                $extraction['current']['error'] = true;
+                break;
+        }
+
+        return $extraction;
+    }
+
     // Merge Duplicate's Ids in a single array with all sub id and other data
     function merge_profileId_array($original_array)
     {
@@ -317,7 +423,6 @@ class dcm
         return $outer_array;
 
     }
-
 
     // GET line from dynamic header
     function get_report_header($raw_data, $extraction, $needle)

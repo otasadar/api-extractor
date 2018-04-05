@@ -24,6 +24,7 @@ $yandex = new yandex();
 $extraction = $_POST['extraction'];
 $extraction['csv_output'] = '';// Temporal container for reports
 $extraction['reportsData'] = '';// Clone of accountData + extra information from API requests
+$extraction['extraction_name_ini'] = $extraction['extraction_name'];
 
 
 // Google Sheet Log
@@ -36,39 +37,29 @@ $extraction = $helpers->live_log($extraction, Array("Start Task {$extraction['ap
 
 // google tasks could be duplicates, added random id for avoid collisions in runtime files
 // two ids for identify with task retries
-$extraction['extraction_id'] = $extraction['extraction_id'].'-'.rand();
-$extraction['extraction_name'] = $extraction['extraction_name'].'-tmp-'.$extraction['extraction_id'];
+$extraction['extraction_id'] = $extraction['extraction_id'] . '-' . rand();
+$extraction['extraction_name'] = $extraction['extraction_name'] . '-tmp-' . $extraction['extraction_id'];
 
 
-
-switch ($extraction['api_type']) {
-    case "google":
-        $client_id = $extraction['global']['google']['client_id'];
-        $client_secret = $extraction['global']['google']['client_secret'];
-        $extraction['access_token'] = $helpers->get_access_token($client_id, $client_secret, $extraction['refresh_token']);
-        $now = new DateTime();
-        $extraction['access_token_datetime'] = $now->format('Y-m-d H:i:s');
-        break;
-
-    case "facebook":
-        break;
-
-    case "yandex":
-        break;
-
-    default:
-        $helpers->gae_log(LOG_DEBUG, 'Not API Type provided ' . $_SERVER['CURRENT_VERSION_ID ']);
-        return array('error', "api not provided to extraction  :" . $extraction['extraction_group']);
-        break;
-}
 
 switch ($extraction['api']) {
 
     case "adwords":
+        $extraction = $helpers->check_access_token($extraction);
 
         // create file with header
-        $extraction['csv_output'] = $extraction['metrics']."\n";
+        $extraction['csv_output'] = $extraction['metrics'] . "\n";
         $helpers->create_csv_file($extraction);
+
+        $helpers->gae_log(LOG_DEBUG, $extraction['startDate']);
+        $helpers->gae_log(LOG_DEBUG, $extraction['endDate']);
+        $helpers->gae_log(LOG_DEBUG, $extraction['split_day_period']);
+
+        if (isset($extraction['split_day_period'])) {
+            $dates = $helpers->split_dates($extraction['startDate'], $extraction['endDate'], $extraction['split_day_period']);
+            $helpers->gae_log(LOG_DEBUG, "all dates".json_encode($dates));
+        }
+
 
         foreach ($extraction['accountsData'] as $key => $account) {
 
@@ -84,25 +75,24 @@ switch ($extraction['api']) {
             $extraction = $helpers->live_log($extraction, $log_values);
 
             // Split by dates
-            /*
             if (isset($extraction['split_day_period'])) {
-                $dates = split_dates($extraction['startDate'], $extraction['endDate']);
+
+                $report_data = '';
                 foreach ($dates as $date) {
-                    $extraction['task_name']
                     $extraction['startDate'] = $date['startDate'];
                     $extraction['endDate'] = $date['endDate'];
-                    $account_data = $adwords->set_adwords_request($extraction);
+                    $extraction = $helpers->check_access_token($extraction);
+                    $report_data .= $adwords->set_adwords_request($extraction);
                 }
+
             } else {
-                $account_data = $adwords->set_adwords_request($extraction);
+                // One extractions per ID
+                $extraction = $helpers->check_access_token($extraction);
+                $report_data = $adwords->set_adwords_request($extraction);
             }
-            */
 
-            $extraction = $helpers->check_access_token($extraction);
-            $account_data = $adwords->set_adwords_request($extraction);
-
-            if (mb_strlen($account_data) > 1 ) {
-                $extraction['csv_output'] = $account_data;
+            if (mb_strlen($report_data) > 1) {
+                $extraction['csv_output'] = $report_data;
                 $helpers->storage_insert_combine_delete($extraction);
                 $result = "OK";
             } else {
@@ -113,7 +103,7 @@ switch ($extraction['api']) {
                 $extraction['current']['accountId'],
                 $extraction['current']['accountName'],
                 $result,
-                mb_strlen($account_data));
+                mb_strlen($report_data));
             $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
             $extraction = $helpers->live_log($extraction, $log_values);
 
@@ -123,34 +113,32 @@ switch ($extraction['api']) {
 
     case "ds":
 
+        $extraction = $helpers->check_access_token($extraction);
+
         // create file with header
-        $extraction['csv_output'] = $extraction['report_header']."\n";
+        $extraction['csv_output'] = $extraction['report_header'] . "\n";
         $helpers->create_csv_file($extraction);
-
-
-
-
 
         // First loop : get reportId and fileId
         foreach ($extraction['accountsData'] as $row) {
 
-                $extraction = $helpers->check_access_token($extraction);
-                $extraction['current'] = $row;
+            $extraction = $helpers->check_access_token($extraction);
+            $extraction['current'] = $row;
 
-                $log_values = Array(
-                    $extraction['current']['agencyId'],
-                    $extraction['current']['agencyName'],
-                    "START");
-                $extraction = $helpers->live_log($extraction, $log_values);
+            $log_values = Array(
+                $extraction['current']['agencyId'],
+                $extraction['current']['agencyName'],
+                "START");
+            $extraction = $helpers->live_log($extraction, $log_values);
 
-                $extraction['json_request'] = json_decode($extraction['json_request']);
-                $extraction['json_request']->timeRange->startDate = $extraction['global']['ds']['yesterday'];
-                $extraction['json_request']->timeRange->endDate = $extraction['global']['ds']['yesterday'];
-                $extraction['json_request']->reportScope->agencyId =  $row['agencyId'];
-                $extraction['json_request'] = json_encode($extraction['json_request']);
-                // start pull data
-                $extraction = $ds->start($extraction);
-                if (isset($extraction['current']['error'])) continue;
+            $extraction['json_request'] = json_decode($extraction['json_request']);
+            $extraction['json_request']->timeRange->startDate = $extraction['global']['ds']['yesterday'];
+            $extraction['json_request']->timeRange->endDate = $extraction['global']['ds']['yesterday'];
+            $extraction['json_request']->reportScope->agencyId = $row['agencyId'];
+            $extraction['json_request'] = json_encode($extraction['json_request']);
+            // start pull data
+            $extraction = $ds->start($extraction);
+            if (isset($extraction['current']['error'])) continue;
 
         }
 
@@ -163,15 +151,15 @@ switch ($extraction['api']) {
             $extraction = $helpers->check_access_token($extraction);
             $extraction['current'] = $row;
 
-            if (isset($row['reportId']) ) {
+            if (isset($row['reportId'])) {
                 $api_response = $ds->ask_until_status_available($extraction);
 
                 $report_url = $api_response->files[0]->url;
                 $report_size = (int)$api_response->files[0]->byteCount;
                 // todo add check and control if return error 500
-                $helpers->gae_log(LOG_DEBUG, "report_size:".$report_size);
+                $helpers->gae_log(LOG_DEBUG, "report_size:" . $report_size);
 
-                if ($report_size  > 1 ) {
+                if ($report_size > 1) {
                     $extraction['csv_output'] = $ds->report_data_from_url($api_response, $extraction);
                     $helpers->storage_insert_combine_delete($extraction);
                     $result = "OK";
@@ -194,15 +182,17 @@ switch ($extraction['api']) {
 
     case "dcm":
 
+        $extraction = $helpers->check_access_token($extraction);
+
         // create file with header
-        $extraction['csv_output'] = $extraction['report_header']."\n";
+        $extraction['csv_output'] = $extraction['report_header'] . "\n";
         $helpers->create_csv_file($extraction);
 
         // Payload modifications
         $extraction['json_request'] = json_decode($extraction['json_request']);
         $extraction['json_request']->schedule->expirationDate = $extraction['global']['dcm']['today'];
         $extraction['json_request']->schedule->startDate = $extraction['global']['dcm']['today'];
-        $extraction['json_request']->name = $extraction['extraction_name'].'';
+        $extraction['json_request']->name = $extraction['extraction_name'] . '';
         $extraction['json_request'] = json_encode($extraction['json_request']);
         $extraction['profileIds_validated'] = $dcm->get_profilesIds($extraction);
 
@@ -214,7 +204,7 @@ switch ($extraction['api']) {
 
             // profileId validation
             if (!in_array($profileId, $extraction['profileIds_validated'])) {
-                $log_values = Array($profileId,null,null,null,"ERROR","Profile ID not found");
+                $log_values = Array($profileId, null, null, null, "ERROR", "Profile ID not found");
                 $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
                 $extraction = $helpers->live_log($extraction, $log_values);
                 continue;
@@ -226,106 +216,16 @@ switch ($extraction['api']) {
                 $extraction['current'] = $row;
                 $extraction['current']['profileId'] = $profileId;
 
-                // Report Type vars
-                switch ($extraction['report_type']) {
-
-                    //prepare request
-                    case "STANDARD":
-                        // advertiserId validations
-                        $advertiserId = $row['advertiserId'];
-                        $advertiserIdsValidator = $dcm->check_advertiserIds($profileId, $extraction);
-                        if (!in_array($advertiserId, $advertiserIdsValidator)) {
-
-                            $log_values = Array(
-                                $profileId,
-                                $helpers->return_isset($row['advertiserId']),
-                                $helpers->return_isset($row['floodlightConfigId']),
-                                $row['advertiserName'],
-                                $row['networkName'],
-                                "ERROR",
-                                "Advertiser Id not found");
-                            $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                            $extraction = $helpers->live_log($extraction, $log_values);
-                            continue;
-                        }
-
-                        $extraction['json_request'] = json_decode($extraction['json_request']);
-                        if (isset($extraction['json_request']->criteria->dateRange->endDate)) {
-                            if ($extraction['json_request']->criteria->dateRange->endDate === 'YESTERDAY') {
-                                $extraction['json_request']->criteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
-                            }
-                        }
-                        $extraction['json_request']->criteria->dimensionFilters[0]->dimensionName = "dfa:advertiser";
-                        $extraction['json_request']->criteria->dimensionFilters[0]->id = $advertiserId;
-                        $extraction['json_request'] = json_encode($extraction['json_request']);
-                        break;
-                    case "FLOODLIGHT":
-                        // floodlightConfigIds validation
-                        $floodlightConfigId = $row['floodlightConfigId'];
-                        $floodlightConfigIdsValidator = $dcm->check_floodlightConfigIds($profileId, $extraction);
-                        if (!in_array($floodlightConfigId, $floodlightConfigIdsValidator)) {
-
-                            $log_values = Array(
-                                $profileId,
-                                $helpers->return_isset($row['advertiserId']),
-                                $helpers->return_isset($row['floodlightConfigId']),
-                                $row['advertiserName'],
-                                $row['networkName'],
-                                "ERROR",
-                                "FloodConfigId not found");
-                            $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                            $extraction = $helpers->live_log($extraction, $log_values);
-                            continue;
-
-                        }
-
-                        // edit report json request dynamically
-                        $extraction['json_request'] = json_decode($extraction['json_request']);
-                        if (isset($extraction['json_request']->floodlightCriteria->dateRange->endDate)) {
-                            if ($extraction['json_request']->floodlightCriteria->dateRange->endDate === 'YESTERDAY') {
-                                $extraction['json_request']->floodlightCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
-                            }
-                        }
-                        $extraction['json_request']->floodlightCriteria->floodlightConfigId->value = $floodlightConfigId;
-                        $extraction['json_request'] = json_encode($extraction['json_request']);
-                        break;
-                    case "CROSS_DIMENSION_REACH":
-                        // advertiserId validations
-                        $advertiserId = $row['advertiserId'];
-                        $advertiserIdsValidator = $dcm->check_advertiserIds($profileId, $extraction);
-                        if (!in_array($advertiserId, $advertiserIdsValidator)) {
-
-                            $log_values = Array(
-                                $profileId,
-                                $helpers->return_isset($row['advertiserId']),
-                                $helpers->return_isset($row['floodlightConfigId']),
-                                $row['advertiserName'],
-                                $row['networkName'],
-                                "ERROR",
-                                "Advertiser Id not found");
-                            $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                            $extraction = $helpers->live_log($extraction, $log_values);
-                            continue;
-                        }
-
-                        $extraction['json_request'] = json_decode($extraction['json_request']);
-                        if (isset($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate)) {
-                            if ($extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate === 'YESTERDAY') {
-                                $extraction['json_request']->crossDimensionReachCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
-                            }
-                        }
-                        $extraction['json_request']->crossDimensionReachCriteria->dimensionFilters[0]->id = $advertiserId;
-                        $extraction['json_request'] = json_encode($extraction['json_request']);
-                        break;
-                    default:
-                        $helpers->gae_log(LOG_DEBUG, "Report Type not provided");
-                        continue;
-                        break;
+                // Manipulation payload request according report type
+                $extraction = $dcm->preparing_report_type_vars($extraction);
+                if (isset($extraction['current']['error'])) {
+                    unset ($extraction['current']['error']);
+                    continue;
                 }
 
-                // start pull data
+                // Start pull data and fill reportsData
                 $extraction = $dcm->start($extraction, $profileId);
-                if (isset($extraction['current']['error']))  {
+                if (isset($extraction['current']['error'])) {
                     unset ($extraction['current']['error']);
                     continue;
                 }
@@ -364,7 +264,7 @@ switch ($extraction['api']) {
 
                 // exist content case
                 $raw_data = $dcm->headers_cleaner($raw_data, $extraction, 'Campaign', true);
-                if (mb_strlen($raw_data ) > 1 ) {
+                if (mb_strlen($raw_data) > 1) {
                     $extraction['csv_output'] = $raw_data;
                     $helpers->storage_insert_combine_delete($extraction);
                     $result = "OK";
@@ -380,7 +280,7 @@ switch ($extraction['api']) {
                     $helpers->return_isset($extraction['current']['networkName']),
                     $result,
                     mb_strlen($raw_data));
-                $helpers->gae_log(LOG_DEBUG, "REPORT OK:".json_encode($log_values));
+                $helpers->gae_log(LOG_DEBUG, "REPORT OK:" . json_encode($log_values));
                 $extraction = $helpers->live_log($extraction, $log_values);
             }
 
@@ -391,84 +291,91 @@ switch ($extraction['api']) {
     case "dbm":
 
         // no temp id for dbm
-        $extraction['extraction_name'] = str_replace('-tmp-'.$extraction['extraction_id'], '', $extraction['extraction_name']);
+        $extraction['extraction_name'] = str_replace('-tmp-' . $extraction['extraction_id'], '', $extraction['extraction_name']);
 
-        $extraction['json_request'] = json_decode($extraction['json_request']);
-        $extraction['json_request']->reportDataStartTimeMs = strtotime($extraction['startDate']) * 1000;
-        $extraction['json_request']->reportDataEndTimeMs = strtotime($extraction['endDate']) * 1000;
-        $extraction['json_request']->metadata->title = $extraction['extraction_name'].'EOF';
-        $extraction['json_request'] = json_encode($extraction['json_request']);
+        // 1 - First loop : accountsData to reportsData with queryId
+        foreach ($extraction['accountsData'] as $accountData) {
 
-        $helpers->gae_log(LOG_DEBUG, "check json_request" . $extraction['json_request']);
+            $extraction['current'] = $accountData;
 
-        // First part : Set, Run and get queryID
-        /////////////////////////////////////
-        $extraction['current'] = '';
-        $extraction = $helpers->check_access_token($extraction);
-        $extraction = $dbm->start($extraction);
-        if (isset($extraction['current']['error'])) {
-            $helpers->gae_log(LOG_DEBUG, "---killed process ");
-            die;
+            $extraction = $dbm->preparing_payload($extraction);
+            $extraction = $helpers->check_access_token($extraction);
+
+            // start pull data and fill reportsData
+            $extraction = $dbm->start($extraction);
+            if (isset($extraction['current']['error'])) {
+                unset ($extraction['current']['error']);
+                continue;
+            }
+
         }
 
-        $extraction = $helpers->live_log($extraction, array("START"));
+        $helpers->gae_log(LOG_DEBUG, "check control reportsData" . json_encode($extraction['reportsData']));
 
-        // Second part : Wait until URL is generated
-        /////////////////////////
-        $extraction = $helpers->check_access_token($extraction);
-        $response = $dbm->ask_until_status_available($extraction);
-        // todo add check and control if return error 500
+        // 2 - Second loop : Wait until URL is generated
+        foreach ($extraction['reportsData'] as $row) {
 
-        // error case
-        if ($response === 'FAILED' || $response === 'CANCELLED') {
+            $extraction = $helpers->check_access_token($extraction);
+            $extraction['current'] = $row;
 
-            $helpers->gae_log(LOG_DEBUG, "ERROR-".$response);
-            $extraction = $helpers->live_log($extraction, array("ERROR", $response));
+            if (isset($row['queryId'])) {
+                $response = $dbm->ask_until_status_available($extraction);
+                // todo add check and control if return error 500
 
-        } else {
-
-            $report_url = $response ;
-
-            // Save URL to file
-            $extraction['csv_output'] = $response;
-            $file_path ="{$extraction['extraction_group']}/input/{$extraction['api']}/url-{$extraction['extraction_name']}";
-            $helpers->create_csv_file($extraction,$file_path);
-
-            // Save live logging
-            $fileSize = $helpers->get_curl_remote_file_size($report_url);
-            $extraction['csv_size'] = $fileSize;
-            $content_status = ($extraction['csv_size']) ?  'OK' : 'EMPTY';
-            $extraction = $helpers->live_log($extraction, array($content_status, $helpers->bytesToMBytes($extraction['csv_size']), $report_url));
-
-            // Get active tasks
-            $json_tasks = $helpers->get_current_tasks($extraction);
-            $json_tasks = json_decode($json_tasks);
-            $task_pattern = "{$extraction['api']}-{$extraction['extraction_group']}";
-            $active_task = 0;
-            foreach ($json_tasks->tasks as $task) {
-                if (strpos($task->name, $task_pattern) !== false) {
-                    $active_task++;
+                // error case
+                if ($response === 'FAILED' || $response === 'CANCELLED') {
+                    $helpers->gae_log(LOG_DEBUG, "ERROR-" . $response);
+                    $extraction = $helpers->live_log($extraction, array("ERROR", $response));
+                    continue;
                 }
-            }
-            $helpers->gae_log(LOG_DEBUG, "active-task:".$active_task);
 
+                // case REPORT DONE
+                $report_url = $response;
 
-            if ($active_task === 1)  {
-                $response = $helpers->actions_jobs_executor_vm($extraction, 'start');
-                $helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor'.$response);
+                // Save URL to file
+                $extraction['csv_output'] = $response;
+                $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/url-{$extraction['extraction_name']}-{$row['queryId']}";
+                $helpers->create_csv_file($extraction, $file_path);
 
-                sleep(180);
-                $extraction = $helpers->save_urls_data_to_buckets($extraction);
-                $helpers->actions_jobs_executor_vm($extraction, 'stop');
-                $helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor'.$response);
-
+                // Save live logging
+                $fileSize = $helpers->get_curl_remote_file_size($report_url);
+                $extraction['csv_size'] = $fileSize;
+                $content_status = ($extraction['csv_size']) ? 'OK' : 'EMPTY';
+                $extraction = $helpers->live_log($extraction, array($content_status, $helpers->bytesToMBytes($extraction['csv_size']), $report_url));
 
             }
 
         }
 
+        // 3 - If this is last task of this APO, get files from URL and put in storage
+        // Warning : If two task finish at same time this part could not be executed
+        // Warning : last task detector is based ina beta API
 
+        $json_tasks = $helpers->get_current_tasks($extraction);
+        $json_tasks = json_decode($json_tasks);
+        $task_pattern = "{$extraction['api']}-{$extraction['extraction_group']}";
+        $active_task = 0;
 
+        foreach ($json_tasks->tasks as $task) {
+            if (strpos($task->name, $task_pattern) !== false) {
+                $active_task++;
+            }
+        }
+        $helpers->gae_log(LOG_DEBUG, "active-task:" . $active_task);
+
+        if ($active_task === 1) {
+            $response = $helpers->actions_jobs_executor_vm($extraction, 'start');
+            $helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
+
+            sleep(30);
+            $response = $helpers->actions_jobs_executor_vm($extraction, '');
+            $helpers->gae_log(LOG_DEBUG, 'status-vm-jobs-executor' . json_encode($response));
+            sleep(100);
+            $extraction = $helpers->save_urls_data_to_buckets($extraction);
+            $helpers->actions_jobs_executor_vm($extraction, 'stop');
+            $helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
+
+        }
 
         break;
 
@@ -600,7 +507,7 @@ switch ($extraction['api']) {
 
         // create file with header
 
-        $extraction['csv_output'] = $extraction['headers']."\n";
+        $extraction['csv_output'] = $extraction['headers'] . "\n";
         $helpers->create_csv_file($extraction);
 
         foreach ($extraction['accountsData'] as $key => $account) {
@@ -619,7 +526,7 @@ switch ($extraction['api']) {
             $extraction = $helpers->check_access_token($extraction);
             $account_data = $ga->set_ga_request($extraction, null);
 
-            if (mb_strlen($account_data) > 1 ) {
+            if (mb_strlen($account_data) > 1) {
                 $extraction['csv_output'] = $account_data;
                 $helpers->storage_insert_combine_delete($extraction);
                 $result = "OK";
@@ -642,7 +549,7 @@ switch ($extraction['api']) {
     case "yandex":
 
         // create file with header
-        $extraction['csv_output'] = $extraction['report_header']."\n";
+        $extraction['csv_output'] = $extraction['report_header'] . "\n";
         $helpers->create_csv_file($extraction);
 
         foreach ($extraction['accountsData'] as $key => $account) {
@@ -656,22 +563,22 @@ switch ($extraction['api']) {
             $extraction['json_request']->params->ReportName = $extraction['current'] ['ReportName'];
             $extraction['json_request'] = json_encode($extraction['json_request']);
 
-            $log_values = Array( $extraction['current']['clientLogin'], "START" );
+            $log_values = Array($extraction['current']['clientLogin'], "START");
             $extraction = $helpers->live_log($extraction, $log_values);
             $extraction = $yandex->set_yandex_request($extraction);
 
-            syslog(LOG_DEBUG, "output size:".mb_strlen($extraction['csv_output']));
+            syslog(LOG_DEBUG, "output size:" . mb_strlen($extraction['csv_output']));
 
 
-            if (mb_strlen($extraction['csv_output']) > 1 ) {
+            if (mb_strlen($extraction['csv_output']) > 1) {
                 $helpers->storage_insert_combine_delete($extraction);
                 $result = "OK";
             } else {
                 $result = "EMPTY";
             }
 
-            $log_values = Array( $extraction['current']['clientLogin'], $result, mb_strlen($extraction['csv_output']) );
-            syslog(LOG_DEBUG, "test last part:".json_encode($log_values));
+            $log_values = Array($extraction['current']['clientLogin'], $result, mb_strlen($extraction['csv_output']));
+            syslog(LOG_DEBUG, "test last part:" . json_encode($log_values));
             $extraction = $helpers->live_log($extraction, $log_values);
         }
         break;
@@ -680,12 +587,16 @@ switch ($extraction['api']) {
         $helpers->gae_log(LOG_DEBUG, 'Not API Name provided ' . $_SERVER['CURRENT_VERSION_ID ']);
         return array('error', "api not provided to extraction  :" . $extraction['extraction_group']);
         break;
+
 }
 
-$extraction = $helpers->live_log($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
-// dbm is direct
-if ($extraction['api'] !== 'dbm') $helpers->rename_tmp_to_final_file($extraction);
 
+// dbm is direct
+if ($extraction['api'] !== 'dbm') $extraction = $helpers->rename_tmp_to_final_file($extraction);
+
+// Force last row live log
+$extraction['global']['google_sheet']['last_request'] = date("Y-m-d H:i:s", strtotime(date("Y-m-d H:i:s", strtotime($extraction['global']['google_sheet']['last_request'])) . " -1 day"));
+$extraction = $helpers->live_log($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
 
 
 

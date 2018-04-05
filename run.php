@@ -1,7 +1,7 @@
 <?php
 
-//$bucket = "api-extractor-staging";
-$bucket = "annalect-dashboarding";
+$bucket = "api-extractor-staging";
+//$bucket = "annalect-dashboarding";
 
 ini_set('display_errors', 1);
 use google\appengine\api\taskqueue\PushTask;

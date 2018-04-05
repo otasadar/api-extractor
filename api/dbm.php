@@ -26,14 +26,12 @@ class dbm
     function start($extraction)
     {
         $api_response = $this->report_setup($extraction);
-        $extraction['current']['queryId'] = $api_response->queryId;
+
         $extraction = $this->helpers->check_n_control($api_response, $extraction);
         if (isset($extraction['current']['error'])) return $extraction;
 
-        //$this->run_report($api_response, $extraction);
-        //$extraction['reportsData'][] = $extraction['current'];
-        //$extraction = $this->helpers->check_n_control($api_response, $extraction);
-        //if (isset($extraction['current']['error'])) return $extraction;
+        $extraction['current']['queryId'] = $api_response->queryId;
+        $extraction['reportsData'][] = $extraction['current'];
 
         return $extraction;
 
@@ -292,6 +290,24 @@ class dbm
             $extraction = $this->helpers->live_log($extraction, $log_values);
 
         }
+
+        return $extraction;
+    }
+
+    // Preparing payload request
+    function preparing_payload ($extraction) {
+
+        // prepare payload
+        if (!isset($extraction['refresh_token'])) {
+            $extraction['refresh_token'] = $extraction['current']['refreshToken'];
+        }
+        $extraction['json_request'] = json_decode($extraction['json_request']);
+        $extraction['json_request']->params->filters[0]->value =  $extraction['current']['partnerId'];
+        $extraction['json_request']->reportDataStartTimeMs = strtotime($extraction['startDate']) * 1000;
+        $extraction['json_request']->reportDataEndTimeMs = strtotime($extraction['endDate']) * 1000;
+        $extraction['json_request']->metadata->title = "{$extraction['extraction_name']}___{$extraction['current']['partnerId']}___";
+        $extraction['json_request'] = json_encode($extraction['json_request']);
+        $this->helpers->gae_log(LOG_DEBUG, "check json_request" . $extraction['json_request']);
 
         return $extraction;
     }
