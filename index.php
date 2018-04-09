@@ -1,7 +1,11 @@
 <?php
 
-//$bucket = "api-extractor-staging";
-$bucket = "annalect-dashboarding";
+
+if (strpos($_SERVER['HTTP_HOST'], 'staging') !== false)  {
+    $bucket = "api-extractor-staging";
+} else {
+    $bucket = "annalect-dashboarding";
+}
 
 require_once __DIR__ . '/api/helpers.php';
 $helpers = new helpers();

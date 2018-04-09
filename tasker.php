@@ -304,8 +304,8 @@ switch ($extraction['api']) {
             // start pull data and fill reportsData
             $extraction = $dbm->start($extraction);
             if (isset($extraction['current']['error'])) {
-                unset ($extraction['current']['error']);
-                continue;
+                 $extraction = $helpers->reset_error($extraction);
+                 continue;
             }
 
         }
@@ -319,15 +319,22 @@ switch ($extraction['api']) {
             $extraction['current'] = $row;
 
             if (isset($row['queryId'])) {
-                $response = $dbm->ask_until_status_available($extraction);
-                // todo add check and control if return error 500
+                $extraction = $dbm->ask_until_status_available($extraction);
+                $response = $extraction['current']['response'];
 
-                // error case
+                // error with response 200
                 if ($response === 'FAILED' || $response === 'CANCELLED') {
                     $helpers->gae_log(LOG_DEBUG, "ERROR-" . $response);
                     $extraction = $helpers->live_log($extraction, array("ERROR", $response));
                     continue;
                 }
+
+                // error with response ! 200
+                if (isset($extraction['current']['error'])) {
+                    $extraction = $helpers->reset_error($extraction);
+                    continue;
+                }
+
 
                 // case REPORT DONE
                 $report_url = $response;
@@ -367,10 +374,8 @@ switch ($extraction['api']) {
             $response = $helpers->actions_jobs_executor_vm($extraction, 'start');
             $helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
 
-            sleep(30);
-            $response = $helpers->actions_jobs_executor_vm($extraction, '');
-            $helpers->gae_log(LOG_DEBUG, 'status-vm-jobs-executor' . json_encode($response));
             sleep(100);
+
             $extraction = $helpers->save_urls_data_to_buckets($extraction);
             $helpers->actions_jobs_executor_vm($extraction, 'stop');
             $helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
@@ -470,7 +475,13 @@ switch ($extraction['api']) {
                         if (mb_strlen($account_data[1]) > 22) {
 
                             if ($include_header) {
+
+                                // original version
                                 $extraction['csv_output'] = $account_data[1];
+
+                                //version for edit header
+                                //$extraction['csv_output'] = $facebook->add_pattern_to_header ($account_data[1] , 'fb_');
+
                                 $helpers->create_csv_file($extraction);
                                 $include_header = false;
                                 $result = 'REPORT UPDATED TO STORAGE WITH HEADER';

@@ -508,6 +508,9 @@ class helpers
 
     // add general values to each row of live loggin
     function live_log_add_general($extraction, $row) {
+
+        $now = new DateTime();
+
         // live log common
         if (isset($extraction['report_type'])) {
             $report_type = $extraction['report_type'];
@@ -515,8 +518,8 @@ class helpers
             $report_type = 'N/A';
         }
 
-        $now = new DateTime();
         array_unshift($row,
+            $extraction['timestamp'],
             $now->format('d-m-Y'),
             $now->format('H:i:s'),
             $extraction['extraction_id'],
@@ -589,41 +592,65 @@ class helpers
         $this->gae_log(LOG_DEBUG, "search_str:" . $search_str);
         $this->gae_log(LOG_DEBUG, "url-to-transfer:" . json_encode($response));
         $extraction = $this->live_log($extraction, Array("GET-URLS"));
+        if ($this->isset_errors($response, 'get_urls_to_transfer'))  return $extraction;
 
         // Read URL for get MD5 and size
         $response = $this->get_urls_md5($response);
-        $this->gae_log(LOG_DEBUG, "get-md5:" . $response);
+        $this->gae_log(LOG_DEBUG, "TSV :" . $response);
         $extraction = $this->live_log($extraction, Array("GET-URLS-MD5"));
+        if ($this->isset_errors($response, 'get_urls_md5'))  return $extraction;
 
         // Save TSV file
         $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv", $response);
-        $this->gae_log(LOG_DEBUG, "TSV :" . $response);
-
         $extraction = $this->live_log($extraction, Array("SET-TSV"));
+        // todo add error step control
 
         // start transfer from URL source to bucket destination using API Google Transfer
         $response = $this->transfer_urls_to_bucket($extraction);
-        $this->gae_log(LOG_DEBUG, "transfer-response:" . json_encode($response));
+        $this->gae_log(LOG_DEBUG, "transfer-init-response:" . json_encode($response));
         $extraction = $this->live_log($extraction, Array("TRANSFER","START"));
+        if ($this->isset_errors($response, 'transfer_urls_to_bucket'))  return $extraction;
 
         // check status until === ENABLED
         $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
-        $extraction = $this->live_log($extraction, Array("TRANSFER",$status));
-        // to do : if status !== SUCCESS die process
+        $this->gae_log(LOG_DEBUG, "transfer-status-response:" . json_encode($status));
+        $extraction = $this->live_log($extraction, Array("TRANSFER",json_encode($status)));
+        if ($this->isset_errors($response, 'check_status_transfer_urls_to_bucket'))  return $extraction;
 
-
+        
         // Combine tmp transferred object to final location
         $search_str = "storage.googleapis.com";
         $destination_folder = "{$extraction['extraction_group']}/input/{$extraction['api']}";
         $this->move_combine_files_to_bucket($extraction, $search_str, $destination_folder);
         $extraction = $this->live_log($extraction, Array("MOVE-OBJECTS"));
+        // todo add error step control
 
         // Delete tmp files and tsv file
         $this->delete_tmp_objects($extraction);
         $extraction = $this->live_log($extraction, Array("DELETE-TMP-OBJECTS"));
+        // todo add error step control
 
         return $extraction;
 
+    }
+
+    // Check step validation
+    function isset_errors($response, $case=null) {
+        // all case
+        if (empty($response)) {
+            return true;
+        }
+        switch ($case) {
+            case 'get_urls_to_transfer':
+                break;
+            
+            default:
+                
+                break;
+        }
+
+        return false;
+        
     }
 
     // Get all URLS to transfer
@@ -688,7 +715,7 @@ class helpers
         return $dataCollection;
     }
 
-    // Return numer of month between two dates
+    // Return number of month between two dates
     function date_difference($startDate, $endDate, $format)
     {
         $d1 = new DateTime($startDate);
@@ -780,12 +807,8 @@ class helpers
         $response2 = $this->set_curl($headers, $endpoint, null, 'GET');
         //$this->gae_log(LOG_DEBUG, "response2-status:" . $response2);
 
-        $response2 = json_decode($response2);
-        if(isset($response2->operations[0]->metadata->status)) {
-            return $response2->operations[0]->metadata->status;
-        } else {
-            return null;
-        }
+        return json_decode($response2);
+
 
 
     }
@@ -793,10 +816,16 @@ class helpers
     // Recursive functions for retrieve enable status
     function check_status_transfer_urls_to_bucket($extraction, $response)
     {
-        $status = $this->get_status_transfer_urls_to_bucket($extraction, $response);
+        $responseStatus = $this->get_status_transfer_urls_to_bucket($extraction, $response);
+
+        if(isset($responseStatus->operations[0]->metadata->status)) {
+            $status =  $responseStatus->operations[0]->metadata->status;
+        } else {
+            $status =  $responseStatus;
+        }
 
         if ($status === 'IN_PROGRESS') {
-            sleep(5);
+            sleep(30);
             $extraction = $this->live_log($extraction, Array("TRANSFER", $status));
             return $this->check_status_transfer_urls_to_bucket($extraction, $response);
         }
@@ -898,7 +927,6 @@ class helpers
                 "partnerId" => $chunks[1],
                 "sourceObject" => $sourceObject,
                 "sourceFileName" => $sourceFileName];
-
         }
         $urls_group_by_name = $this->merge_array($urls_group_by_name, 'reportName');
 
@@ -937,7 +965,7 @@ class helpers
 
     }
 
-
+    // Todo update this function to check_json_response
     // Check and control error response between request for avoid continue
     function check_n_control($response, $extraction) {
         if (is_array($response)) {
@@ -957,6 +985,59 @@ class helpers
         }
         return $extraction;
 
+    }
+
+    // New check and control for curl JSON response
+    function check_json_response($response, $extraction) {
+
+        if (is_array($response)) {
+            if (!isset($extraction['current']['error_counter'])) {
+                $extraction['current']['error_counter'] = 1;
+            } else {
+                $extraction['current']['error_counter']++;
+            }
+            $extraction['current']['error'] = true;
+            $extraction['current']['http_code'] = $response[0];
+            $extraction['current']['error_response'] = $response[1];
+            $extraction['current']['endpoint'] = $response[2];
+            $extraction['current']['info'] = $response[3];
+            $extraction['current']['response'] = 'error';
+            $log_values = array(
+                "CURL ERROR",
+                $extraction['current']['http_code'],
+                $extraction['current']['endpoint'],
+                $extraction['current']['error_response'],
+                json_encode($extraction['current']['info']));
+            $extraction = $this->live_log($extraction, $log_values);
+            $this->gae_log(LOG_DEBUG, "ERROR-".$extraction['current']['info']);
+            return $extraction;
+        } else {
+            $extraction['current']['response'] = json_decode($response);
+            return $extraction;
+        }
+
+    }
+
+    // Check retries counter for avoid infinite retries
+    function check_for_retries($extraction) {
+        if (isset($extraction['current']['error_counter'])) {
+            if ($extraction['current']['error_counter'] > 2) {
+                return false;
+            }
+            else {
+                return true;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
+    // reset errors variable if is not reset by default equalizing current object
+    function reset_error($extraction) {
+        unset($extraction['current']['error']);
+        unset($extraction['current']['error_counter']);
+        return $extraction;
     }
 
     // Copy objects in same bucket
@@ -997,12 +1078,19 @@ class helpers
         $oldFileSize = filesize("gs://$bucket/$destinationObject");
         $newFileSize = filesize("gs://$bucket/$sourceObject");
 
-        $extraction = $this->live_log($extraction, Array("FILE", $extraction['extraction_name'], $newFileSize, $oldFileSize ));
+        if ($newFileSize >= $oldFileSize || !isset($oldFileSize)) {
+            $status = 'updated';
+            $response = $this->copy_object_google_storage($extraction, $sourceObject, $destinationObject );
+            if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
+        }
+        else {
+            $status = 'not updated';
+        }
+        $extraction = $this->live_log($extraction, Array("FINAL FILE", $status, $extraction['extraction_name'], $newFileSize, $oldFileSize ));
 
-        $response = $this->copy_object_google_storage($extraction, $sourceObject, $destinationObject );
 
 
-        if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
+
 
         return $extraction;
     }
@@ -1058,6 +1146,7 @@ class helpers
         return date_format($date, 'Ymd');
     }
 
+    // Remove days to a date
     function removeDays ($date, $days) {
         $date = new DateTime($date);
         date_modify($date, "-$days day");
@@ -1094,5 +1183,32 @@ class helpers
 
     }
 
+    // Get and replace unique values from array
+    function get_unique_val($val, $arr) {
+        if ( in_array($val, $arr) ) {
+            $d = 2; // initial prefix
+            preg_match("~_([\d])$~", $val, $matches); // check if value has prefix
+            $d = $matches ? (int)$matches[1]+1 : $d;  // increment prefix if exists
+
+            preg_match("~(.*)_[\d]$~", $val, $matches);
+
+            $newval = (in_array($val, $arr)) ? $this->get_unique_val($matches ? $matches[1].'_'.$d : $val.'_'.$d, $arr) : $val;
+            return $newval;
+        } else {
+            return $val;
+        }
+    }
+
+    // Check unique values of array
+    function unique_arr($arr) {
+        $_arr = array();
+        foreach ( $arr as $k => $v ) {
+            $arr[$k] = $this->get_unique_val($v, $_arr);
+            $_arr[$k] = $arr[$k];
+        }
+        unset($_arr);
+
+        return $arr;
+    }
 
 }

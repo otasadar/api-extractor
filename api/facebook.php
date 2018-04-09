@@ -106,4 +106,36 @@ class facebook
 
         }
     }
+
+    function add_pattern_to_header ($str , $pattern) {
+        $helpers = new helpers();
+        $header= explode("\n", $str)[0];
+        $header= explode(",", $header);
+        $header = $helpers->unique_arr($header);
+        /*
+        foreach($header as $key => $col) {
+            $col = str_replace('"', '', $col);
+            $header[$key] = '"'.$pattern.$col.'"';
+        }*/
+        $header2 = [];
+        for ($key = 0; $key <= 300; $key++) {
+            $header[$key] = str_replace('"', '',  $header[$key]);
+            $header2[$key] = '"'.$pattern. $header[$key].'"';
+
+        }
+        $header= implode(",", $header2);
+
+
+        $body= implode("\n", array_slice(explode("\n", $str), 1));
+        $body = str_replace("\n", "\r\n", $body);
+        $body= explode(",", $body);
+        $body2 = [];
+        for ($key = 0; $key <= 300; $key++) {
+            $body2[$key] = $body[$key];
+        }
+        $body= implode(",", $body2);
+
+
+        return $header."\r\n".$body;
+    }
 }

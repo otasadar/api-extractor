@@ -25,8 +25,8 @@ class dbm
     // DBM First Function for start a combo of DBM request
     function start($extraction)
     {
+        // to do add checkers & retries
         $api_response = $this->report_setup($extraction);
-
         $extraction = $this->helpers->check_n_control($api_response, $extraction);
         if (isset($extraction['current']['error'])) return $extraction;
 
@@ -87,11 +87,14 @@ class dbm
         $api_version = $extraction['global']['dbm']['api_version'];
         $endpoint = "https://www.googleapis.com/doubleclickbidmanager/$api_version/queries/$queryId/reports";
         $curl_response = $this->helpers->set_curl($headers, $endpoint, null, 'GET', null);
-        $curl_response = json_decode($curl_response);
 
+
+        $extraction = $this->helpers->check_json_response($curl_response, $extraction);
         $this->helpers->gae_log(LOG_DEBUG, "dbm_get_report_url " . json_encode($curl_response));
         sleep(1);
-        return $curl_response;
+        if ($this->helpers->check_for_retries($extraction) ) return $this->get_report_url($extraction);
+
+        return $extraction;
     }
 
 
@@ -99,14 +102,22 @@ class dbm
     function ask_until_status_available($extraction)
     {
         $extraction = $this->helpers->check_access_token($extraction);
-        $api_response = $this->get_report_url($extraction);
-        $status = $api_response->reports[0]->metadata->status->state;
+        $extraction = $this->get_report_url($extraction);
 
+
+        if (isset($extraction['current']['error']))  {
+            $status = $extraction['current']['http_code'];
+        } else {
+            $response = $extraction['current']['response'];
+            $status = $response->reports[0]->metadata->status->state;
+
+        }
         $extraction = $this->helpers->live_log($extraction, Array("STATUS", $status));
 
 
         if ($status=== "DONE") {
-            return $api_response->reports[0]->metadata->googleCloudStoragePath;
+            $extraction['current']['response'] = $response->reports[0]->metadata->googleCloudStoragePath;
+            return $extraction;
 
         } else if ($status === "RUNNING") {
             $this->helpers->gae_log(LOG_DEBUG, "queueDelay:60");
@@ -114,7 +125,8 @@ class dbm
             return $this->ask_until_status_available($extraction);
 
         } else {
-            return $status;
+            $extraction['current']['response'] = $status;
+            return $extraction;
         }
     }
 

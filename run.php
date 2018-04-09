@@ -1,7 +1,11 @@
 <?php
 
-//$bucket = "api-extractor-staging";
-$bucket = "annalect-dashboarding";
+
+if (strpos($_SERVER['HTTP_HOST'], 'staging') !== false)  {
+    $bucket = "api-extractor-staging";
+} else {
+    $bucket = "annalect-dashboarding";
+}
 
 ini_set('display_errors', 1);
 use google\appengine\api\taskqueue\PushTask;
@@ -57,6 +61,7 @@ foreach ($extractions['items'] as $key => $extraction) {
     $current = $key + 1;
     $extraction['global'] = $extractions['global'] ;
     $extraction['global']['items_counter'] = count($extractions['items']);
+    $extraction['timestamp'] = $datetime->format('d-m-Y-H-i');
     $extraction['task_name'] = $extraction['api']."-".$extraction['extraction_group']."-".$extraction['extraction_name'];
     $extraction['extraction_id'] = rand();
 
