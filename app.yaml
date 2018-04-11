@@ -1,5 +1,4 @@
 application: annalect-api-jobs
-#service: api-extractor-staging
 service: api-extractor
 version: v6
 

@@ -477,10 +477,27 @@ switch ($extraction['api']) {
                             if ($include_header) {
 
                                 // original version
-                                $extraction['csv_output'] = $account_data[1];
+                                //$extraction['csv_output'] = $account_data[1];
 
                                 //version for edit header
                                 //$extraction['csv_output'] = $facebook->add_pattern_to_header ($account_data[1] , 'fb_');
+
+
+                                $header = implode(array_slice(explode("\n", $account_data[1]), 0,1));
+                                $header = preg_replace('/[^,_A-Za-z0-9\-]/', "", $header);
+                                $header = 'fb_' . str_replace(',',',fb_',$header);
+                                $helpers->gae_log(LOG_DEBUG, $header);
+
+                                $header = explode(",",$header);
+                                $helpers->gae_log(LOG_DEBUG, json_encode($header));
+
+                                $header_string_unique = implode(",", $helpers->unique_arr($header));
+                                $helpers->gae_log(LOG_DEBUG, $header_string_unique);
+
+
+                                $body = implode("\n",array_slice(explode("\n", $account_data[1]), 1));
+                                $extraction['csv_output'] = $header_string_unique . "\n" . $body;
+
 
                                 $helpers->create_csv_file($extraction);
                                 $include_header = false;
