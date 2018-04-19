@@ -413,6 +413,13 @@ $phd_sample = array(
 );
 
 $phd_account_data_std_cross = array(
+
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_AFTERSALES_GCC_AND_LEVANT ', 'advertiserId' => '6197584'),
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_BRAND_GCC_AND_LEVANT ', 'advertiserId' => '6203268'),
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_DEALER_GCC_AND_LEVANT ', 'advertiserId' => '6203788'),
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'AUDI_SEARCH_GCC_AND_LEVANT ', 'advertiserId' => '6203270'),
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'MASTER_FLOODLIGHT_AUDI_GCC_AND_LEVANT (DO_NOT_TRAFFIC) ', 'advertiserId' => '6199969'),
+
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'advertiserId' => '5912534'),
     array('profileId' => '4385849', 'networkName' => 'Alshaya CRM & Digital', 'advertiserName' => 'Mothercare Kuwait', 'advertiserId' => '8395950'),
     array('profileId' => '4385849', 'networkName' => 'Alshaya CRM & Digital', 'advertiserName' => 'H&M Kuwait', 'advertiserId' => '8384822'),
@@ -485,6 +492,9 @@ $phd_account_data_std_cross = array(
 );
 
 $phd_account_data_flood = array(
+
+    array('profileId' => '4459800', 'networkName' => 'PHD International Audi Global', 'advertiserName' => 'MASTER_FLOODLIGHT_AUDI_GCC_AND_LEVANT (DO_NOT_TRAFFIC) ', 'floodlightConfigId' => '6199969'),
+
     array('profileId' => '4342702', 'networkName' => 'Virgin Atlantic DCM - EMEA', 'advertiserName' => 'Virgin Atlantic ', 'floodlightConfigId' => '5912534'),
     array('profileId' => '4368959', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Lurpak ', 'floodlightConfigId' => '5449796'),
     array('profileId' => '4368959', 'networkName' => 'Arla-DCM-EMEA-AE', 'advertiserName' => 'Puck', 'floodlightConfigId' => '5454647'),

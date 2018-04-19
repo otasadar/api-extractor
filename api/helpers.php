@@ -475,6 +475,16 @@ class helpers
         return isset($isset) ? $isset : $default;
     }
 
+    // Active google sheet for live log and other uses
+    function init_google_sheet($extraction) {
+        $client_id = $extraction['global']['google']['client_id'];
+        $client_secret = $extraction['global']['google']['client_secret'];
+        $now = new DateTime();
+        $extraction['global']['google_sheet']['access_token'] = $this->get_access_token($client_id, $client_secret, $extraction['global']['google_sheet']['refresh_token']);
+        $extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+        return $extraction;
+    }
+
     // log using google sheet
     function live_log($extraction, $row)
     {
@@ -541,7 +551,39 @@ class helpers
         $api_version = $extraction['global']['google_sheet']['api_version'];
         $endpoint = "https://sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values/A1:append?includeValuesInResponse=true&insertDataOption=INSERT_ROWS&valueInputOption=RAW&alt=json";
         $payload = json_encode(array("values" => $row));// double array
-        $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
+        return $extraction;
+    }
+
+    // Get last values of a google sheet
+    function get_last_rows_google_sheet($extraction, $rows) {
+
+        $now = new DateTime();
+        $extraction = $this->check_access_token($extraction, 'sheets');
+        $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
+        $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);
+        $api_version = $extraction['global']['google_sheet']['api_version'];
+
+        $endpoint = "https://sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values:batchGet?ranges=A1%3AZ$rows";
+        $response = $this->set_curl($headers, $endpoint, null, 'GET', null);
+        $response = json_decode($response);
+        $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
+        $extraction['global']['google_sheet']['last_rows'] = $response->valueRanges[0]->values;
+        return $extraction;
+    }
+
+    // Clear last values of a google sheet
+    function clear_last_rows_google_sheet($extraction, $rows) {
+
+        $now = new DateTime();
+        $extraction = $this->check_access_token($extraction, 'sheets');
+        $sheet_id = $extraction['global']['google_sheet']['sheet_id'];
+        $headers = array('Content-type: application/json', 'Authorization : Bearer ' . $extraction['global']['google_sheet']['access_token']);
+        $api_version = $extraction['global']['google_sheet']['api_version'];
+
+        $endpoint = "https://sheets.googleapis.com/$api_version/spreadsheets/$sheet_id/values/A1%3AZ$rows:clear";
+        $response = $this->set_curl($headers, $endpoint, null, 'POST', null);
         $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
         return $extraction;
     }
@@ -611,11 +653,18 @@ class helpers
         $extraction = $this->live_log($extraction, Array("TRANSFER","START"));
         if ($this->isset_errors($response, 'transfer_urls_to_bucket'))  return $extraction;
 
-        // check status until === ENABLED
-        $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
-        $this->gae_log(LOG_DEBUG, "transfer-status-response:" . json_encode($status));
-        $extraction = $this->live_log($extraction, Array("TRANSFER",json_encode($status)));
-        if ($this->isset_errors($response, 'check_status_transfer_urls_to_bucket'))  return $extraction;
+        if (isset($response->status) && $response->status === 'ENABLED') {
+            $this->gae_log(LOG_DEBUG, "transfer-status-response:" . $response->status);
+            $extraction = $this->live_log($extraction, Array("TRANSFER", $response->status ));
+
+        } else {
+            // check status until === ENABLED
+            $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
+            $this->gae_log(LOG_DEBUG, "transfer-status-response:" . json_encode($status));
+            $extraction = $this->live_log($extraction, Array("TRANSFER",json_encode($status)));
+            if ($this->isset_errors($response, 'check_status_transfer_urls_to_bucket'))  return $extraction;
+        }
+
 
         
         // Combine tmp transferred object to final location
@@ -805,7 +854,7 @@ class helpers
         $endpoint = "https://storagetransfer.googleapis.com/$api_version/transferOperations?filter=$filter";
 
         $response2 = $this->set_curl($headers, $endpoint, null, 'GET');
-        //$this->gae_log(LOG_DEBUG, "response2-status:" . $response2);
+        $this->gae_log(LOG_DEBUG, "response-transferOperations:" . $response2);
 
         return json_decode($response2);
 
@@ -1077,8 +1126,9 @@ class helpers
 
         $oldFileSize = filesize("gs://$bucket/$destinationObject");
         $newFileSize = filesize("gs://$bucket/$sourceObject");
+        $percentChange = (1 - $oldFileSize / $newFileSize) * 100;
 
-        if ($newFileSize >= $oldFileSize || !isset($oldFileSize)) {
+        if ($percentChange > -30 || !isset($oldFileSize)) {
             $status = 'updated';
             $response = $this->copy_object_google_storage($extraction, $sourceObject, $destinationObject );
             if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
@@ -1165,8 +1215,8 @@ class helpers
         foreach ($original_array as $key => $value) {
             $inner_array = array();
 
-            $profileId_value = $value[$merger_key];
-            if (!in_array($value[$merger_key], $unique_array)) {
+            $profileId_value = @$value[$merger_key];
+            if (!@in_array($value[$merger_key], $unique_array)) {
                 array_push($unique_array, $profileId_value);
 
                 unset($value[$merger_key]);
@@ -1211,4 +1261,47 @@ class helpers
         return $arr;
     }
 
+    // List bucket files sending search str
+    function bucket_listing($extraction, $search) {
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $access_token = $this->get_storage_access_token($extraction);
+        $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
+        $version = $extraction['global']['google_storage']['api_version'];
+        $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o?prefix=$search";
+        $response = $this->set_curl($headers, $endpoint, null, 'GET', null);
+        $log_files = json_decode($response);
+
+        $result = [];
+        if (isset ($log_files->items)) {
+            foreach ($log_files->items as $key => $row) {
+                if (empty($row->size)) continue;
+                $result[$key] = $row;
+            }
+        }
+        return $result;
+
+    }
+
+    // Clean Google Sheet log and split in log files
+    function sheets_extraction_to_log_files ($extraction){
+
+        $extraction = $this->get_last_rows_google_sheet($extraction, 10000);
+        $rows = $extraction['global']['google_sheet']['last_rows'];
+        $bucket = $extraction['global']['google_storage']['bucket'];
+        $rows_batch = $this->merge_array($rows, 0);
+
+        foreach ($rows_batch as $timestamp=>$batch) {
+            $csv_output = '';
+            foreach ($batch as $row) {
+                $csv_output .= implode(',', $row)."\n";
+            }
+            $gcs_path = "gs://$bucket/log/$timestamp.csv";
+            //$gcs_path = "$timestamp.csv";
+            file_put_contents($gcs_path, $csv_output);
+        }
+
+        $extraction = $this->clear_last_rows_google_sheet($extraction, 10000);
+        return $extraction;
+
+    }
 }

@@ -1,16 +1,20 @@
 <?php
 
+ini_set('display_errors', 1);
+use google\appengine\api\taskqueue\PushTask;
+date_default_timezone_set('Asia/Dubai');
+
+$datetime = new DateTime();
+$today = $datetime->format('d-m-Y');
+
+require_once __DIR__ . '/api/helpers.php';
+$helpers = new helpers();
 
 if (strpos($_SERVER['HTTP_HOST'], 'staging') !== false)  {
     $bucket = "api-extractor-staging";
 } else {
     $bucket = "annalect-dashboarding";
 }
-
-ini_set('display_errors', 1);
-use google\appengine\api\taskqueue\PushTask;
-$datetime = new DateTime();
-$today = $datetime->format('d-m-Y');
 
 $config_global = "gs://$bucket/config/config-global.php";
 
@@ -30,7 +34,6 @@ if (isset($_POST['code'])) {
     $code = str_replace("<?php", '', $code);
 
     file_put_contents("gs://$bucket/config/" . $_POST['config'], $code);
-    file_put_contents("gs://$bucket/config/backup-$today.php", $code);
 
 } else if (isset($_GET['config'])) {
 
@@ -57,6 +60,10 @@ if (!isset($extractions['items']))  {
 
 
 $i = 0;
+
+$extractions = $helpers->init_google_sheet($extractions);
+$helpers->sheets_extraction_to_log_files($extractions) ;
+
 foreach ($extractions['items'] as $key => $extraction) {
     $current = $key + 1;
     $extraction['global'] = $extractions['global'] ;

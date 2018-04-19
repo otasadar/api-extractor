@@ -25,16 +25,8 @@ $extraction = $_POST['extraction'];
 $extraction['csv_output'] = '';// Temporal container for reports
 $extraction['reportsData'] = '';// Clone of accountData + extra information from API requests
 $extraction['extraction_name_ini'] = $extraction['extraction_name'];
-
-
-// Google Sheet Log
-$client_id = $extraction['global']['google']['client_id'];
-$client_secret = $extraction['global']['google']['client_secret'];
-$now = new DateTime();
-$extraction['global']['google_sheet']['access_token'] = $helpers->get_access_token($client_id, $client_secret, $extraction['global']['google_sheet']['refresh_token']);
-$extraction['global']['google_sheet']['access_token_datetime'] = $now->format('Y-m-d H:i:s');
+$extraction = $helpers->init_google_sheet($extraction);
 $extraction = $helpers->live_log($extraction, Array("Start Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
-
 // google tasks could be duplicates, added random id for avoid collisions in runtime files
 // two ids for identify with task retries
 $extraction['extraction_id'] = $extraction['extraction_id'] . '-' . rand();
@@ -115,8 +107,8 @@ switch ($extraction['api']) {
 
         $extraction = $helpers->check_access_token($extraction);
 
-        // create file with header
-        $extraction['csv_output'] = $extraction['report_header'] . "\n";
+        // create file without header - ds include own headers
+        $extraction['csv_output'] = '';
         $helpers->create_csv_file($extraction);
 
         // First loop : get reportId and fileId
