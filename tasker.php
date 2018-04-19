@@ -21,17 +21,7 @@ $facebook = new facebook();
 $ga = new ga();
 $yandex = new yandex();
 
-$extraction = $_POST['extraction'];
-$extraction['csv_output'] = '';// Temporal container for reports
-$extraction['reportsData'] = '';// Clone of accountData + extra information from API requests
-$extraction['extraction_name_ini'] = $extraction['extraction_name'];
-$extraction = $helpers->init_google_sheet($extraction);
-$extraction = $helpers->live_log($extraction, Array("Start Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
-// google tasks could be duplicates, added random id for avoid collisions in runtime files
-// two ids for identify with task retries
-$extraction['extraction_id'] = $extraction['extraction_id'] . '-' . rand();
-$extraction['extraction_name'] = $extraction['extraction_name'] . '-tmp-' . $extraction['extraction_id'];
-
+$extraction = $helpers->init_extraction($_POST['extraction']);
 
 
 switch ($extraction['api']) {

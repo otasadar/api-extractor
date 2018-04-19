@@ -5,6 +5,19 @@
  */
 class helpers
 {
+    function init_extraction ($extraction) {
+        $extraction['csv_output'] = '';// Temporal container for reports
+        $extraction['reportsData'] = '';// Clone of accountData + extra information from API requests
+        $extraction['extraction_name_ini'] = $extraction['extraction_name'];
+        $extraction = $this->init_google_sheet($extraction);
+        $extraction = $this->live_log($extraction, Array("Start Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
+        // google tasks could be duplicates, added random id for avoid collisions in runtime files
+        // two ids for identify with task retries
+        $extraction['extraction_id'] = $extraction['extraction_id'] . '-' . rand();
+        $extraction['extraction_name'] = $extraction['extraction_name'] . '-tmp-' . $extraction['extraction_id'];
+
+        return $extraction;
+    }
     // Storage file with public permissions
     function file_put_contents_public($filename, $data)
     {
