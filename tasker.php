@@ -272,9 +272,6 @@ switch ($extraction['api']) {
 
     case "dbm":
 
-        // no temp id for dbm
-        $extraction['extraction_name'] = str_replace('-tmp-' . $extraction['extraction_id'], '', $extraction['extraction_name']);
-
         // 1 - First loop : accountsData to reportsData with queryId
         foreach ($extraction['accountsData'] as $accountData) {
 
@@ -295,7 +292,7 @@ switch ($extraction['api']) {
         $helpers->gae_log(LOG_DEBUG, "check control reportsData" . json_encode($extraction['reportsData']));
 
         // 2 - Second loop : Wait until URL is generated
-        foreach ($extraction['reportsData'] as $row) {
+        foreach ($extraction['reportsData'] as $key =>$row) {
 
             $extraction = $helpers->check_access_token($extraction);
             $extraction['current'] = $row;
@@ -320,11 +317,14 @@ switch ($extraction['api']) {
 
                 // case REPORT DONE
                 $report_url = $response;
+                $extraction['reportUrls'][] = $report_url;
 
-                // Save URL to file
+                // Save URL to file - Deprecated, just for VM case
+                /*
                 $extraction['csv_output'] = $response;
                 $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/url-{$extraction['extraction_name']}-{$row['queryId']}";
                 $helpers->create_csv_file($extraction, $file_path);
+                */
 
                 // Save live logging
                 $fileSize = $helpers->get_curl_remote_file_size($report_url);
@@ -335,6 +335,13 @@ switch ($extraction['api']) {
             }
 
         }
+
+        // 3 - Transfer URLs to bucket
+        $extraction = $helpers->save_google_url_data_to_bucket($extraction);
+
+        /*
+         DEPRECATED, just for VM case:
+
 
         // 3 - If this is last task of this APO, get files from URL and put in storage
         // Warning : If two task finish at same time this part could not be executed
@@ -353,16 +360,15 @@ switch ($extraction['api']) {
         $helpers->gae_log(LOG_DEBUG, "active-task:" . $active_task);
 
         if ($active_task === 1) {
-            $response = $helpers->actions_jobs_executor_vm($extraction, 'start');
-            $helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
-
-            sleep(100);
-
+            //$response = $helpers->actions_jobs_executor_vm($extraction, 'start');
+            //$helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
+            //sleep(100);
             $extraction = $helpers->save_urls_data_to_buckets($extraction);
-            $helpers->actions_jobs_executor_vm($extraction, 'stop');
-            $helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
+            //$helpers->actions_jobs_executor_vm($extraction, 'stop');
+            //$helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
 
         }
+        */
 
         break;
 
@@ -601,8 +607,8 @@ switch ($extraction['api']) {
 }
 
 
-// dbm is direct
-if ($extraction['api'] !== 'dbm') $extraction = $helpers->rename_tmp_to_final_file($extraction);
+
+$extraction = $helpers->rename_tmp_to_final_file($extraction);
 
 // Force last row live log
 $extraction['global']['google_sheet']['last_request'] = date("Y-m-d H:i:s", strtotime(date("Y-m-d H:i:s", strtotime($extraction['global']['google_sheet']['last_request'])) . " -1 day"));

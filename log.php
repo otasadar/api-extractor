@@ -174,7 +174,7 @@ $extraction['global'] = $extractions['global'] ;
             <?php
 
                 $log_files = $helpers->bucket_listing ($extraction, 'log');
-                foreach ($log_files as $file){
+                foreach (array_reverse($log_files) as $file){
                     echo "<p> <a href='?d=$file->name'>".urldecode($file->name)."</a> </p>";
                 }
 
@@ -217,7 +217,7 @@ $extraction['global'] = $extractions['global'] ;
                 <?php
 
                     $log_files = $helpers->bucket_listing ($extraction, 'log');
-                    foreach ($log_files as $file){
+                    foreach (array_reverse($log_files) as $file){
                         echo "<p> <a href='?d=$file->name'>".urldecode($file->name)."</a> </p>";
                     }
 
