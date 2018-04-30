@@ -774,7 +774,7 @@ class helpers
             $this->gae_log(LOG_DEBUG, "transfer-job-response:" . $response->status);
             $extraction = $this->live_log($extraction, Array("TRANSFER-JOB", $response->status));
 
-            sleep(5); // transfer operation requires a few seconds to init
+            sleep(30); // transfer operation requires a few seconds to init
             $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
             $this->gae_log(LOG_DEBUG, "transfer-operation-response:" . json_encode($status));
             $extraction = $this->live_log($extraction, Array("TRANSFER-OPERATION", json_encode($status)));

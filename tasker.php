@@ -114,8 +114,8 @@ switch ($extraction['api']) {
             $extraction = $helpers->live_log($extraction, $log_values);
 
             $extraction['json_request'] = json_decode($extraction['json_request']);
-            $extraction['json_request']->timeRange->startDate = $extraction['global']['ds']['yesterday'];
-            $extraction['json_request']->timeRange->endDate = $extraction['global']['ds']['yesterday'];
+            $extraction['json_request']->timeRange->startDate = $extraction['startDate'];
+            $extraction['json_request']->timeRange->endDate = $extraction['endDate'];
             $extraction['json_request']->reportScope->agencyId = $row['agencyId'];
             $extraction['json_request'] = json_encode($extraction['json_request']);
             // start pull data
