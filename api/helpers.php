@@ -5,6 +5,15 @@
  */
 class helpers
 {
+    // Init config files Staging / Production
+    function init_global_config () {
+        $bucket =  (strpos($_SERVER['HTTP_HOST'], 'staging') !== false)  ? "api-extractor-staging" : "annalect-dashboarding" ;
+        $config_global = file_get_contents("gs://$bucket/config/config-global.php");
+        $config_global = str_replace("<?php", '', $config_global);
+        return $config_global;
+    }
+
+    // Init vars for all essxtractions
     function init_extraction($extraction)
     {
         $extraction['csv_output'] = '';// Temporal container for reports
@@ -16,6 +25,8 @@ class helpers
         // two ids for identify with task retries
         $extraction['extraction_id'] = $extraction['extraction_id'] . '-' . rand();
         $extraction['extraction_name'] = $extraction['extraction_name'] . '-tmp-' . $extraction['extraction_id'];
+        $extraction['transferDelay'] = 5;
+        $extraction['listingDelay'] = 5;
 
         return $extraction;
     }
@@ -229,7 +240,7 @@ class helpers
         return $result;
     }
 
-    // GET CURL RAW ONLY  HEADER - regular functions only returns standards headers. Yandex API use custom headers
+    // GET CURL RAW ONLY  HEADER - regular functions only returns standards headers. For get md5 ...
     function set_curl_header_raw($headers, $endpoint, $payload, $type, $extras = null, $range = null)
     {
         $ch = curl_init();
@@ -569,6 +580,12 @@ class helpers
         return $extraction;
     }
 
+    // instant live log without collecting previous one
+    function live_log_instant ($extraction, $row) {
+        $extraction['global']['google_sheet']['last_request'] = date("Y-m-d H:i:s", strtotime(date("Y-m-d H:i:s", strtotime($extraction['global']['google_sheet']['last_request'])) . " -1 day"));
+        return $this->live_log($extraction, $row);
+    }
+
     // add general values to each row of live loggin
     function live_log_add_general($extraction, $row)
     {
@@ -584,7 +601,7 @@ class helpers
 
         array_unshift($row,
             $extraction['timestamp'],
-            $now->format('d-m-Y'),
+            $now->format('Y-m-d'),
             $now->format('H:i:s'),
             $extraction['extraction_id'],
             $extraction['extraction_group'],
@@ -610,6 +627,8 @@ class helpers
         $extraction['global']['google_sheet']['last_request'] = $now->format('Y-m-d H:i:s');
         return $extraction;
     }
+
+
 
     // Get last values of a google sheet
     function get_last_rows_google_sheet($extraction, $rows)
@@ -681,87 +700,82 @@ class helpers
         return round($bytes / 1000000, $precision) . " Mb";
     }
 
-    // Put multiples URLs content to buckets  - Requires VM for get md5
-    function save_urls_data_to_buckets($extraction)
+    // Put generic URLs content to buckets
+    // Require VM
+    function contains ($haystack, $needle) {
+        return (strpos($haystack, $needle) !== false) ? true : false ;
+    }
+
+    function save_urls_data_to_buckets($extraction, $url)
     {
-        // Get URLS extracted from API process
+        $storage_access_token = $this->get_storage_access_token($extraction);
+        $extraction = $this->check_access_token($extraction);
+
+        $url_token=$extraction['access_token'];
+        $gcs_token=$storage_access_token;
+        $tmp_file= $extraction['extraction_name'].'-partial.csv';
         $bucket = $extraction['global']['google_storage']['bucket'];
-        $prefix = "{$extraction['extraction_group']}/input/{$extraction['api']}/url";
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
-        $this->gae_log(LOG_DEBUG, "search_str:" . $prefix);
-        $this->gae_log(LOG_DEBUG, "url-to-transfer:" . json_encode($response));
-        $extraction = $this->live_log($extraction, Array("GET-URLS"));
-        if ($this->isset_errors($response, 'get_urls_to_transfer')) return $extraction;
+        $object= "{$extraction['extraction_group']}/input/{$extraction['api']}/$tmp_file";
+        $api = $extraction['api'];
+        $this->gae_log(LOG_DEBUG, "test url:" . $url);
+        $url = str_replace('%', '#', $url); //patch for fix strange URL encoding/entities coming from DBM
+        $this->gae_log(LOG_DEBUG, "test url hashed:" . $url);
 
-        // Read URL for get MD5 and size
-        $response = $this->get_google_urls_md5($response);
-        $this->gae_log(LOG_DEBUG, "TSV :" . $response);
-        $extraction = $this->live_log($extraction, Array("GET-URLS-MD5"));
-        if ($this->isset_errors($response, 'get_urls_md5_from_vm')) return $extraction;
+        $endpoint = 'http://35.200.161.162/helpers/url-to-bucket.php';
+        $payload = "url=$url&url_token=$url_token&gcs_token=$gcs_token&tmp_file=$tmp_file&bucket=$bucket&object=$object&api=$api";
+        $extraction = $this->live_log($extraction, Array("TRANSFER-VM", "start"));
+        $curl_response = $this->set_curl(null, $endpoint, $payload, 'POST', null);
 
-        // Save TSV file
-        $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv", $response);
-        $extraction = $this->live_log($extraction, Array("SET-TSV"));
-        // todo add error step control
+        $curl_response = (is_array($curl_response)) ? json_encode($curl_response) : $curl_response ;
 
-        // start transfer from URL source to bucket destination using API Google Transfer
-        $response = $this->transfer_urls_to_bucket($extraction);
-        $this->gae_log(LOG_DEBUG, "transfer-init-response:" . json_encode($response));
-        $extraction = $this->live_log($extraction, Array("TRANSFER-JOB", "REQUEST"));
-        if ($this->isset_errors($response, 'transfer_urls_to_bucket')) return $extraction;
-
-        if (isset($response->status) && $response->status === 'ENABLED') {
-            $this->gae_log(LOG_DEBUG, "transfer-job-response:" . $response->status);
-            $extraction = $this->live_log($extraction, Array("TRANSFER-JOB", $response->status));
-
-            sleep(30); // transfer operation requires a few seconds to init
-            $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
-            $this->gae_log(LOG_DEBUG, "transfer-operation-response:" . json_encode($status));
-            $extraction = $this->live_log($extraction, Array("TRANSFER-OPERATION", json_encode($status)));
-            if ($this->isset_errors($response, 'check_status_transfer_urls_to_bucket')) return $extraction;
-
+        if ($this->contains($curl_response, 'Completed') &&  $this->contains($curl_response, 'Error')) {
+            $transfer_status = "Some Error";
+        }
+        else if ($this->contains($curl_response, 'Completed')) {
+            $transfer_status = "Completed";
+        }
+        else if ($this->contains($curl_response, 'Error')) {
+            $transfer_status = "Error";
         } else {
-            // todo check status until === ENABLED
-            $extraction = $this->live_log($extraction, Array("TRANSFER-JOB", "ERROR". $response->status));
+            $transfer_status = $curl_response;
         }
 
 
-        // Combine tmp transferred object to final location
-        $prefix = "storage.googleapis.com";
-        $destination_folder = "{$extraction['extraction_group']}/input/{$extraction['api']}";
-        $response = $this->move_combine_files_to_bucket($extraction, $prefix, $destination_folder, $extraction['name']);
-        if ($response) {
-            $extraction = $this->live_log($extraction, Array("MOVED-OBJECTS"));
-        } else {
-            $extraction = $this->live_log($extraction, Array("MOVING-OBJECTS-FAIL"));
-        }
+        $extraction = $this->live_log($extraction, Array("TRANSFER-VM", $transfer_status));
+
+        // annalect-dashboarding/programmatic/input/dbm/inventory-tmp-816324352-311683828-partial.csv
+
+        $this->gae_log(LOG_DEBUG, "test url:" . $url);
+        $this->gae_log(LOG_DEBUG, "test transfer-vm:" . $payload);
+        $this->gae_log(LOG_DEBUG, "test response:" . $curl_response);
 
 
-        // Delete tmp transfer file and tsv file
-        $this->delete_tmp_files($extraction);
-        $extraction = $this->live_log($extraction, Array("DELETE-TMP-OBJECTS"));
+        // Combine partial to tmp
+        $sourceObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}-partial.csv";
+        $destinationObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
+        $this->compose_two_files_storage($extraction, $destinationObject, $sourceObject);
+        unlink("gs://$bucket/$sourceObject");
 
-        // todo add error step control
+
 
         return $extraction;
 
     }
 
-
-    // Put single URL content to buckets  - Get md5 from headers
-    function save_google_url_data_to_bucket($extraction)
+    // Put DBM URL content to buckets  - Get md5 from headers
+    function save_dbm_url_data_to_bucket($extraction)
     {
 
-
         // Google TSV content = Read URLs for get MD5 and size
-        $response = $this->get_tsv_content($extraction['reportUrls']);
-        $this->gae_log(LOG_DEBUG, "TSV :" . $response);
+        if ($extraction['api'] === 'dbm') $extraction = $this->get_tsv_content($extraction);
+
+        $this->gae_log(LOG_DEBUG, "TSV :" . $extraction['tsvData']);
         $extraction = $this->live_log($extraction, Array("GET-URLS-MD5"));
-        if ($this->isset_errors($response, 'get_urls_md5_from_vm')) return $extraction;
+        if ($this->isset_errors($extraction['tsvData'], 'get_urls_md5_from_vm')) return $extraction;
 
         // Save TSV file
         $bucket = $extraction['global']['google_storage']['bucket'];
-        $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv-{$extraction['extraction_name']}", $response);
+        $this->file_put_contents_public("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv-{$extraction['extraction_name']}", $extraction['tsvData']);
         $extraction = $this->live_log($extraction, Array("SET-TSV"));
 
         // start transfer from URL source to bucket destination using API Google Transfer
@@ -774,7 +788,7 @@ class helpers
             $this->gae_log(LOG_DEBUG, "transfer-job-response:" . $response->status);
             $extraction = $this->live_log($extraction, Array("TRANSFER-JOB", $response->status));
 
-            sleep(30); // transfer operation requires a few seconds to init
+            // recursive function there is a delay between transfer job vs transfer operation
             $status = $this->check_status_transfer_urls_to_bucket($extraction, $response);
             $this->gae_log(LOG_DEBUG, "transfer-operation-response:" . json_encode($status));
             $extraction = $this->live_log($extraction, Array("TRANSFER-OPERATION", json_encode($status)));
@@ -789,7 +803,11 @@ class helpers
         // Combine tmp transferred object to final location
         $prefix = "storage.googleapis.com";
         $destination_folder = "{$extraction['extraction_group']}/input/{$extraction['api']}";
+
+        // recursive function because there is a delay between files uploaded vs files listed
+        $this->gae_log(LOG_DEBUG, "move_combine_files_to_bucket");
         $response = $this->move_combine_files_to_bucket($extraction, $prefix, $destination_folder);
+
         if ($response) {
             $extraction = $this->live_log($extraction, Array("MOVED-OBJECTS"));
         } else {
@@ -816,7 +834,7 @@ class helpers
             return true;
         }
         switch ($case) {
-            case 'get_urls_to_transfer':
+            case 'get_urls_from_storage':
                 break;
 
             default:
@@ -829,25 +847,29 @@ class helpers
     }
 
     // Get all URLS to transfer
-    function get_urls_to_transfer($extraction, $prefix)
+    function get_urls_from_storage($extraction, $prefix )
     {
         // find all files
         // get urls from buckets
+
         $access_token = $this->get_storage_access_token($extraction);
+
         $headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
         $version = $extraction['global']['google_storage']['api_version'];
         $bucket = $extraction['global']['google_storage']['bucket'];
         $path = rawurlencode($prefix);
         $endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o?prefix=$path";
         $response = $this->set_curl($headers, $endpoint, null, 'GET', null);
-        $this->gae_log(LOG_DEBUG, "response curl get_urls_to_transfer: " . json_encode($response));
+        $this->gae_log(LOG_DEBUG, "response curl get_urls_from_storage: " . json_encode($response));
 
         return json_decode($response);
     }
 
     // Get MD5 from VM
-    function get_urls_md5_from_vm($response)
+    function get_urls_md5_from_vm($response, $extraction = null)
     {
+
+        $extraction = $this->check_access_token($extraction);
 
         $tsv_data = [];
         foreach ($response->items as $item) {
@@ -865,7 +887,7 @@ class helpers
 
             $headers = array('content-type: application/x-www-form-urlencoded');
             $endpoint = 'http://35.200.161.162/helpers/md5-hash-and-size.php';
-            $payload = 'url=' . rawurlencode($url);
+            $payload = 'url=' . rawurlencode($url).'&token='.$extraction['access_token'];
             $curl_response = json_decode($this->set_curl($headers, $endpoint, $payload, 'POST', null), true);
             $this->gae_log(LOG_DEBUG, "check responsse md5" . json_encode($curl_response));
 
@@ -877,21 +899,47 @@ class helpers
 
     }
 
-    function get_tsv_content($urls)
+    // Get MD5 from VM Task Async
+    function get_tsv_content_from_vm_async($extraction)
     {
 
+        $urls = $extraction['reportUrls'];
         $tsv_data = [];
         foreach ($urls as $url) {
+
             $headers = [];
-            $headers = $this->set_curl_header_raw($headers, $url, null, 'GET');
-            $headers['x-goog-hash'] = str_replace('md5=', '', $headers['x-goog-hash']);
+            $headers = array('content-type: application/x-www-form-urlencoded');
+            $endpoint = 'http://35.200.161.162/helpers/md5-hash-and-size.php';
+            $payload = 'url=' . rawurlencode($url);
+            $curl_response = json_decode($this->set_curl($headers, $endpoint, $payload, 'POST', null), true);
+            $this->gae_log(LOG_DEBUG, "check responsse md5" . json_encode($curl_response));
 
             if (empty($tsv_data)) $tsv_data[] = 'TsvHttpData-1.0';
-            $tsv_data[] = "$url\t{$headers['Content-Length']}\t{$headers['x-goog-hash']}";
+            $tsv_data[] = "$url\t{$curl_response['Content-Length']}\t{$curl_response['hash']}";
         }
 
+        $extraction['tsvData'] = implode("\n", $tsv_data);
+        return $extraction;
 
-        return implode("\n", $tsv_data);
+    }
+
+    // Build TSV content using existing md5 from headers
+    function get_tsv_content($extraction)
+    {
+        $urls = $extraction['reportUrls'];
+        $tsv_data = [];
+        foreach ($urls as $url) {
+
+            $headers = [];
+            $headers = $this->set_curl_header_raw($headers, $url, null, 'GET');
+            $headers['hash'] = str_replace('md5=', '', $headers['x-goog-hash']);
+
+            if (empty($tsv_data)) $tsv_data[] = 'TsvHttpData-1.0';
+            $tsv_data[] = "$url\t{$headers['Content-Length']}\t{$headers['hash']}";
+        }
+
+        $extraction['tsvData'] = implode("\n", $tsv_data);
+        return $extraction;
 
     }
 
@@ -1000,8 +1048,8 @@ class helpers
         $endpoint = "https://storagetransfer.googleapis.com/$api_version/transferOperations?filter=$filter";
 
         $response2 = $this->set_curl($headers, $endpoint, null, 'GET');
-        $this->gae_log(LOG_DEBUG, "curl-response-transferOperations:" . $response2);
-        $this->gae_log(LOG_DEBUG, "curl-response-transferOperations:" . $endpoint);
+
+        $this->gae_log(LOG_DEBUG, "curl-endpoint-transferOperations:" . $endpoint);
 
 
         return json_decode($response2);
@@ -1013,17 +1061,27 @@ class helpers
     function check_status_transfer_urls_to_bucket($extraction, $response)
     {
         $responseStatus = $this->get_status_transfer_urls_to_bucket($extraction, $response);
+        $this->gae_log(LOG_DEBUG, "response-transferOperations:" . json_encode($responseStatus));
 
         if (isset($responseStatus->operations[0]->metadata->status)) {
             $status = $responseStatus->operations[0]->metadata->status;
         } else {
-            $status = 'OPERATION LIST EMPTY';
+            $status = 'TRANSFER OPERATION LIST EMPTY';
         }
 
-        if ($status === 'IN_PROGRESS' || empty($status)) {
-            sleep(30);
-            $extraction = $this->live_log($extraction, Array("TRANSFER-OPERATION", $status));
-            return $this->check_status_transfer_urls_to_bucket($extraction, $response);
+        if ($status === 'IN_PROGRESS' || empty($status) || $status === 'TRANSFER OPERATION LIST EMPTY') {
+
+            if ($extraction['transferDelay'] < $extraction['max_execution_sec']) {
+                sleep($extraction['transferDelay']);
+                $extraction['transferDelay'] *= 2;
+                $extraction = $this->live_log($extraction, Array("TRANSFER-OPERATION", $status));
+                return $this->check_status_transfer_urls_to_bucket($extraction, $response);
+            } else {
+                $this->gae_log(LOG_DEBUG, "TRANSFER TIMEOUT ".$extraction['transferDelay']);
+                $this->live_log_instant($extraction,"TRANSFER TIMEOUT ".$extraction['transferDelay']);
+                die;
+            }
+
         } else {
             return $status;
         }
@@ -1068,7 +1126,7 @@ class helpers
 
         // copying transfer file to input folder
         $this->gae_log(LOG_DEBUG, "search_str" . $prefix);
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
+        $response = $this->get_urls_from_storage($extraction, $prefix);
         $this->gae_log(LOG_DEBUG, "file_list_bucket" . json_encode($response));
 
         foreach ($response->items as $item) {
@@ -1089,7 +1147,7 @@ class helpers
 
         //deleting transfer files
         $prefix = "storage.googleapis.com";
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
+        $response = $this->get_urls_from_storage($extraction, $prefix);
         foreach ($response->items as $item) {
             $sourceObject = explode('/', $item->selfLink);
             $sourceObject = end($sourceObject);
@@ -1098,7 +1156,7 @@ class helpers
             $this->gae_log(LOG_DEBUG, "deleting: " . $item->selfLink);
         }
         // deleting tsv file
-        unlink("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv");
+        unlink("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv-{$extraction['extraction_name']}");
 
     }
 
@@ -1109,11 +1167,13 @@ class helpers
         $bucket = $extraction['global']['google_storage']['bucket'];
 
         // copying transfer file to input folder
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
+
+
+        $response = $this->get_urls_from_storage($extraction, $prefix);
 
         $urls_group_by_name = [];
-        $extraction = $this->live_log($extraction, Array("get_urls_to_transfer", json_encode($response)));
-        $this->gae_log(LOG_DEBUG, "get_urls_to_transfer-response:" . json_encode($response));
+        $extraction = $this->live_log($extraction, Array("get_urls_from_storage", json_encode($response)));
+        $this->gae_log(LOG_DEBUG, "get_urls_from_storage-response:" . json_encode($response));
 
         if (isset($response->items)) {
             foreach ($response->items as $item) {
@@ -1146,9 +1206,17 @@ class helpers
             }
             return true;
         } else {
-            $this->gae_log(LOG_DEBUG, "get_urls_to_transfer EMPTY");
-            $extraction = $this->live_log($extraction, Array("get_urls_to_transfer", "EMPTY"));
-            return false;
+
+            if ($extraction['listingDelay'] < $extraction['max_execution_sec']) {
+                sleep($extraction['listingDelay']);
+                $extraction['listingDelay'] *= 2;
+                $extraction = $this->live_log($extraction, Array("move_combine_files_to_bucket - DELAY"));
+                return $this->move_combine_files_to_bucket($extraction, $prefix, $destination_folder);
+            } else {
+                $this->gae_log(LOG_DEBUG, "move_combine_files_to_bucket TIMEOUT ".$extraction['transferDelay']);
+                $this->live_log_instant($extraction,"move_combine_files_to_bucket TIMEOUT ".$extraction['transferDelay']);
+                return false;
+            }
         }
 
 
@@ -1162,7 +1230,7 @@ class helpers
 
         //deleting all tmp files
         $prefix = "storage.googleapis.com";
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
+        $response = $this->get_urls_from_storage($extraction, $prefix);
         foreach ($response->items as $item) {
             $sourceObject = explode('/', $item->selfLink);
             $sourceObject = end($sourceObject);
@@ -1186,7 +1254,7 @@ class helpers
 
         //deleting all tmp files
         $prefix = "storage.googleapis.com";
-        $response = $this->get_urls_to_transfer($extraction, $prefix);
+        $response = $this->get_urls_from_storage($extraction, $prefix);
         foreach ($response->items as $item) {
             if (strpos($item->selfLink, $extraction['extraction_name']) !== false) {
                 $sourceObject = explode('/', $item->selfLink);
@@ -1198,7 +1266,7 @@ class helpers
         }
 
         // deleting tsv file
-        unlink("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv-{$extraction['extraction_id']}");
+        unlink("gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/tsv-{$extraction['extraction_name']}");
 
     }
 
@@ -1316,11 +1384,15 @@ class helpers
         $extraction['extraction_name'] = preg_replace('/(-)+(t)+(mp-)+[0-9]+(-)+[0-9]*/', '', $extraction['extraction_name']);
         $destinationObject = "{$extraction['extraction_group']}/input/{$extraction['api']}/{$extraction['extraction_name']}.csv";
 
-        $oldFileSize = filesize("gs://$bucket/$destinationObject");
-        $newFileSize = filesize("gs://$bucket/$sourceObject");
-        $percentChange = (1 - $oldFileSize / $newFileSize) * 100;
+        $oldFilePath = "gs://$bucket/$destinationObject";
+        $newFilePath = "gs://$bucket/$sourceObject";
+        $oldFileSize = (file_exists ($oldFilePath)) ? filesize($oldFilePath) : 0 ;
+        $newFileSize = (file_exists ($newFilePath)) ? filesize($newFilePath) : 0 ;
 
-        if ($percentChange > -30 || !isset($oldFileSize)) {
+        if ($newFileSize > 0 ) $percentChange = (1 - $oldFileSize / $newFileSize) * 100;
+
+
+        if ($newFileSize > 0 && ($percentChange > -30 || !isset($oldFileSize))) {
             $status = 'updated';
             $response = $this->copy_object_google_storage($extraction, $sourceObject, $destinationObject);
             if (!isset($response['error'])) unlink("gs://$bucket/$sourceObject");
@@ -1499,5 +1571,79 @@ class helpers
         $extraction = $this->clear_last_rows_google_sheet($extraction, 10000);
         return $extraction;
 
+    }
+
+    // start_vm for md5
+    function start_vm ($extraction) {
+        $response = $this->actions_jobs_executor_vm($extraction, 'start');
+        $this->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
+        //sleep(100);
+    }
+
+    // detect_last_task_close_vm
+    function stop_vm_if_last_task_of_this_api ($extraction) {
+
+
+        // get active taks
+        $json_tasks = $this->get_current_tasks($extraction);
+        $json_tasks = json_decode($json_tasks);
+        $task_pattern = "{$extraction['api']}-{$extraction['extraction_group']}";
+        $active_task = 0;
+
+        foreach ($json_tasks->tasks as $task) {
+            if (strpos($task->name, $task_pattern) !== false) {
+                $active_task++;
+            }
+        }
+        $this->gae_log(LOG_DEBUG, "active-task:" . $active_task);
+
+        // last task
+        if ($active_task === 1) {
+            //$response = $this->actions_jobs_executor_vm($extraction, 'start');
+            //$this->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
+            //sleep(30);
+           // $extraction = $this->save_urls_data_to_buckets($extraction);
+            $response = $this->actions_jobs_executor_vm($extraction, 'stop');
+            $this->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
+
+        }
+        return $extraction;
+    }
+
+    function upload_big_query($extractions) {
+
+        //Refresh access token
+        $access_token = $this->get_access_token($extractions['global']['google']['client_id'],
+            $extractions['global']['google']['client_secret'],
+            $extractions['global']['google_bigquery']['refresh_token']);
+
+        $this->gae_log(LOG_DEBUG, 'ACCESS TOKEN-> ' . $access_token);
+
+        $headers = array('content-type: application/json', 'authorization : Bearer ' . $access_token);
+        $api_version = $extractions['global']['google_bigquery']['api_version'];
+        $endpoint = "https://www.googleapis.com/bigquery/$api_version/projects/{$extractions['projectId']}/jobs?alt=json";
+        $bucket = $extractions['global']['google_storage']['bucket'];
+
+        //Payload data
+        $payload = ' {
+            "configuration": {
+                "load": {
+                    "destinationTable": { 				
+                        "projectId": "'.$extractions['projectId'].'",
+                        "tableId": "'.$extractions['tableId'].'",
+                        "datasetId": "'.$extractions['datasetId'].'"
+                    },
+                    "autodetect": true,
+                    "sourceUris": ["gs://'.$bucket.'/'.$extractions['object'].'"],
+                    "writeDisposition": "WRITE_' . strtoupper($extractions['disposition']) . '"
+                }
+            }
+         }';
+
+
+        //$this->gae_log(LOG_DEBUG, 'PAYLOAD-> ' . $payload);
+        //$this->gae_log(LOG_DEBUG, 'PAYLOAD-> ' . json_decode(json_encode($payload)));
+        $curl_response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $this->gae_log(LOG_DEBUG, 'curl response-> ' . json_encode($curl_response, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
     }
 }

@@ -86,7 +86,7 @@ $extraction['global'] = $extractions['global'] ;
 <div class="section no-pad-bot" id="index-banner">
     <div class="container">
 
-        <br><br>
+        <p>https://storage.googleapis.com/<?php echo $bucket;?>/<?php echo $_GET['d'];?></p><br>
 
         <div class="row">
             <ul class="collapsible">
@@ -163,7 +163,10 @@ $extraction['global'] = $extractions['global'] ;
                   target="_blank">Google Spreadsheets : Real Time log</a></p>
             <p> Check versions : <br>
             gsutil ls -la gs://annalect-dashboarding/config/phd-aio.php<br>
-            https://cloud.google.com/storage/docs/gsutil/commands/ls
+            https://cloud.google.com/storage/docs/gsutil/commands/ls<br>
+
+                Restore versions:<br>
+                gsutil cp gs://annalect-dashboarding/object.csv#1525155092963082 gs://annalect-dashboarding/object.csv
             </p>
 
         </div>

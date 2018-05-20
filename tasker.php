@@ -35,7 +35,6 @@ switch ($extraction['api']) {
 
         $helpers->gae_log(LOG_DEBUG, $extraction['startDate']);
         $helpers->gae_log(LOG_DEBUG, $extraction['endDate']);
-        $helpers->gae_log(LOG_DEBUG, $extraction['split_day_period']);
 
         if (isset($extraction['split_day_period'])) {
             $dates = $helpers->split_dates($extraction['startDate'], $extraction['endDate'], $extraction['split_day_period']);
@@ -95,10 +94,11 @@ switch ($extraction['api']) {
 
     case "ds":
 
-        $extraction = $helpers->check_access_token($extraction);
+        // Start VM - DS URL transfer require it
+        $helpers->start_vm($extraction);
 
-        // create file without header - ds include own headers
-        $extraction['csv_output'] = '';
+
+        // Create empty file for append tmp
         $helpers->create_csv_file($extraction);
 
         // First loop : get reportId and fileId
@@ -127,7 +127,7 @@ switch ($extraction['api']) {
         $helpers->gae_log(LOG_DEBUG, "check control reportsData" . json_encode($extraction['reportsData']));
 
 
-        // Second loop : ask and wait for content
+        // 2 - Second loop : ask and wait for content
         foreach ($extraction['reportsData'] as $row) {
 
             $extraction = $helpers->check_access_token($extraction);
@@ -135,31 +135,35 @@ switch ($extraction['api']) {
 
             if (isset($row['reportId'])) {
                 $api_response = $ds->ask_until_status_available($extraction);
+                // todo add check and control if return error 500
 
                 $report_url = $api_response->files[0]->url;
                 $report_size = (int)$api_response->files[0]->byteCount;
-                // todo add check and control if return error 500
-                $helpers->gae_log(LOG_DEBUG, "report_size:" . $report_size);
 
-                if ($report_size > 1) {
-                    $extraction['csv_output'] = $ds->report_data_from_url($api_response, $extraction);
-                    $helpers->storage_insert_combine_delete($extraction);
-                    $result = "OK";
-                } else {
-                    $result = "EMPTY";
-                }
+                // case REPORT DONE
+                $extraction['reportUrls'][] = $report_url;
 
-                $log_values = Array(
-                    $extraction['current']['agencyId'],
-                    $extraction['current']['agencyName'],
-                    $result,
-                    $report_size);
-                $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                $extraction = $helpers->live_log($extraction, $log_values);
+
+                // Save live logging
+                $content_status = ($report_size) ? 'OK' : 'EMPTY';
+                $extraction = $helpers->check_access_token($extraction);
+                $extraction = $helpers->live_log($extraction, array($content_status, $helpers->bytesToMBytes($report_size), $report_url, $extraction['access_token']));
+
+                // Save tmp url file
+                //$bucket = $extraction['global']['google_storage']['bucket'];
+                //$file_path = "gs://$bucket/{$extraction['extraction_group']}/input/{$extraction['api']}/url-{$extraction['extraction_name']}-{$row['reportId']}";
+                //file_put_contents($file_path, $report_url);
+                $helpers->gae_log(LOG_DEBUG, "check url" . $report_url);
+
+                $extraction = $helpers->save_urls_data_to_buckets($extraction, $report_url);
+
             }
 
         }
 
+        // If two task are active at same will not work
+        // Close VM in cronjobs
+        //$extraction =  $helpers->stop_vm_if_last_task_of_this_api($extraction);
         break;
 
     case "dcm":
@@ -272,6 +276,12 @@ switch ($extraction['api']) {
 
     case "dbm":
 
+        // Start VM - DS URL transfer require it
+        $helpers->start_vm($extraction);
+
+        // Create empty file for append tmp
+        $helpers->create_csv_file($extraction);
+
         // 1 - First loop : accountsData to reportsData with queryId
         foreach ($extraction['accountsData'] as $accountData) {
 
@@ -324,51 +334,32 @@ switch ($extraction['api']) {
                 $extraction['csv_output'] = $response;
                 $file_path = "{$extraction['extraction_group']}/input/{$extraction['api']}/url-{$extraction['extraction_name']}-{$row['queryId']}";
                 $helpers->create_csv_file($extraction, $file_path);
+
+                partnerId' => '407', 'partnerName
                 */
 
                 // Save live logging
                 $fileSize = $helpers->get_curl_remote_file_size($report_url);
                 $extraction['csv_size'] = $fileSize;
                 $content_status = ($extraction['csv_size']) ? 'OK' : 'EMPTY';
-                $extraction = $helpers->live_log($extraction, array($content_status, $helpers->bytesToMBytes($extraction['csv_size']), $report_url));
+                $extraction = $helpers->live_log($extraction, array($content_status,
+                    $helpers->bytesToMBytes($extraction['csv_size']),
+                    $report_url,
+                    $extraction['current']['partnerId'],
+                    $extraction['current']['partnerName']));
+
+                // Save URL to bucket - From VM - Download, Upload & delete file
+                $extraction = $helpers->save_urls_data_to_buckets($extraction, $report_url);
+
 
             }
 
         }
 
         // 3 - Transfer URLs to bucket
-        $extraction = $helpers->save_google_url_data_to_bucket($extraction);
-
-        /*
-         DEPRECATED, just for VM case:
+        //$extraction = $helpers->save_dbm_url_data_to_bucket($extraction);
 
 
-        // 3 - If this is last task of this APO, get files from URL and put in storage
-        // Warning : If two task finish at same time this part could not be executed
-        // Warning : last task detector is based ina beta API
-
-        $json_tasks = $helpers->get_current_tasks($extraction);
-        $json_tasks = json_decode($json_tasks);
-        $task_pattern = "{$extraction['api']}-{$extraction['extraction_group']}";
-        $active_task = 0;
-
-        foreach ($json_tasks->tasks as $task) {
-            if (strpos($task->name, $task_pattern) !== false) {
-                $active_task++;
-            }
-        }
-        $helpers->gae_log(LOG_DEBUG, "active-task:" . $active_task);
-
-        if ($active_task === 1) {
-            //$response = $helpers->actions_jobs_executor_vm($extraction, 'start');
-            //$helpers->gae_log(LOG_DEBUG, 'start-vm-jobs-executor' . $response);
-            //sleep(100);
-            $extraction = $helpers->save_urls_data_to_buckets($extraction);
-            //$helpers->actions_jobs_executor_vm($extraction, 'stop');
-            //$helpers->gae_log(LOG_DEBUG, 'stop-vm-jobs-executor' . json_encode($response));
-
-        }
-        */
 
         break;
 
@@ -611,8 +602,7 @@ switch ($extraction['api']) {
 $extraction = $helpers->rename_tmp_to_final_file($extraction);
 
 // Force last row live log
-$extraction['global']['google_sheet']['last_request'] = date("Y-m-d H:i:s", strtotime(date("Y-m-d H:i:s", strtotime($extraction['global']['google_sheet']['last_request'])) . " -1 day"));
-$extraction = $helpers->live_log($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
+$helpers->live_log_instant($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
 
 
 

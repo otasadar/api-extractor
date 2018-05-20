@@ -55,6 +55,10 @@ handlers:
   script: run-bigquery.php
   secure: always
 
+- url: /run-bigquery-std
+  script: run-bigquery-std.php
+  secure: always
+
 - url: /run-talendjob
   script: run-talendjob.php
   secure: always
@@ -66,6 +70,15 @@ handlers:
 - url: /run-append-to-output
   script: run-append-to-output.php
   secure: always
+
+- url: /run-moat
+  script: run-moat.php
+  secure: always
+
+- url: /run-moat-old
+  script: run-moat-old.php
+  secure: always
+
 
 - url: /test
   script: test.php

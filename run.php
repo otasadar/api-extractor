@@ -49,37 +49,41 @@ if (isset($_POST['code'])) {
     die;
 }
 
+if (!isset($_POST['onlySave'])) {
+    eval($config_global.$code);
+
+    if (!isset($extractions['items']))  {
+        echo "Saved config file, but there is no extractions to process";
+        die;
+    }
 
 
-eval($config_global.$code);
+    $i = 0;
 
-if (!isset($extractions['items']))  {
-    echo "Saved config file, but there is no extractions to process";
-    die;
+    $extractions = $helpers->init_google_sheet($extractions);
+    $helpers->sheets_extraction_to_log_files($extractions) ;
+
+    foreach ($extractions['items'] as $key => $extraction) {
+        $current = $key + 1;
+        $extraction['global'] = $extractions['global'] ;
+        $extraction['global']['items_counter'] = count($extractions['items']);
+        $extraction['timestamp'] = $datetime->format('d-m-Y-H-i');
+        $extraction['task_name'] = $extraction['api']."-".$extraction['extraction_group']."-".$extraction['extraction_name'];
+        $extraction['extraction_id'] = rand();
+
+        $task_name = $extraction['task_name']."-".$extraction['extraction_id'];
+        $task = new PushTask('/run-tasks-'.$extraction['task_name'].'-'.$extraction['extraction_id'], ['extraction' => $extraction], ['name' => $task_name]);
+        $task->add($extractions['global']['queue']);
+        $i++;
+        echo "running task $i - accountsIds:".count($extraction['accountsData'])." - $task_name <br/>";
+
+    }
+
+    echo "\n";
+    echo "queue: {$extractions['global']['queue']}\n";
+    echo "task_name: $task_name \n";
+
+} else {
+    echo "File saved \n";
 }
 
-
-$i = 0;
-
-$extractions = $helpers->init_google_sheet($extractions);
-$helpers->sheets_extraction_to_log_files($extractions) ;
-
-foreach ($extractions['items'] as $key => $extraction) {
-    $current = $key + 1;
-    $extraction['global'] = $extractions['global'] ;
-    $extraction['global']['items_counter'] = count($extractions['items']);
-    $extraction['timestamp'] = $datetime->format('d-m-Y-H-i');
-    $extraction['task_name'] = $extraction['api']."-".$extraction['extraction_group']."-".$extraction['extraction_name'];
-    $extraction['extraction_id'] = rand();
-
-    $task_name = $extraction['task_name']."-".$extraction['extraction_id'];
-    $task = new PushTask('/run-tasks-'.$extraction['task_name'].'-'.$extraction['extraction_id'], ['extraction' => $extraction], ['name' => $task_name]);
-    $task->add($extractions['global']['queue']);
-    $i++;
-    echo "running task $i - accountsIds:".count($extraction['accountsData'])." - $task_name <br/>";
-
-}
-
-echo "\n";
-echo "queue: {$extractions['global']['queue']}\n";
-echo "task_name: $task_name \n";

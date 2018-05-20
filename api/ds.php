@@ -82,7 +82,17 @@ class ds
         return $curl_response;
     }
 
+    function report_headers_from_url($api_response, $extraction)
+    {
 
+        $report_url = $api_response->files[0]->url;
+        $headers = array("Authorization: Bearer {$extraction['access_token']}");
+
+        $curl_response = $this->helpers->set_curl_header_raw($headers, $report_url, null, 'GET');
+
+        // todo check size, for avoid memory leaks
+        return $curl_response;
+    }
 
 
 

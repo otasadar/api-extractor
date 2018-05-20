@@ -1,24 +1,13 @@
 <?php
 
 
-if (strpos($_SERVER['HTTP_HOST'], 'staging') !== false)  {
-    $bucket = "api-extractor-staging";
-} else {
-    $bucket = "annalect-dashboarding";
-}
-
 require_once __DIR__ . '/api/helpers.php';
 $helpers = new helpers();
-$config_global = file_get_contents("gs://$bucket/config/config-global.php");
-$config_global = str_replace("<?php", '', $config_global);
-eval($config_global);
 
-$access_token = $helpers->get_storage_access_token($extractions);
-$headers = array('Authorization : Bearer ' . $access_token, 'Accept: application/json');
-$version = $extractions['global']['google_storage']['api_version'];
-$endpoint = "https://www.googleapis.com/storage/$version/b/$bucket/o?prefix=config";
-$response = $helpers->set_curl($headers, $endpoint, null, 'GET', null);
-$config_files = json_decode($response);
+eval($helpers->init_global_config());
+$config_files = $helpers->get_urls_from_storage($extractions, 'config');
+$bucket = $extractions['global']['google_storage']['bucket'];
+
 
 ?>
 <!DOCTYPE html>
@@ -48,12 +37,12 @@ $config_files = json_decode($response);
     <div class="container">
 
         <br><br>
-        <?php if (isset($_GET['config'])) : ?>
         <?php
-            $file = urldecode($_GET['config']);
-            $title = "Config setup: $file";
-            $config_file = file_get_contents("gs://$bucket/config/" . $_GET['config']);
-            eval($config_file);
+            if (isset($_GET['config'])) :
+                $file = urldecode($_GET['config']);
+                $title = "Config setup: $file";
+                $config_file = file_get_contents("gs://$bucket/config/" . $_GET['config']);
+                eval($config_file);
         ?>
 
         <div class="row">
@@ -68,6 +57,7 @@ $config_files = json_decode($response);
         </div>
 
         <div class="row">
+            <span id="save" class="btn-large waves-effect waves-light modal-trigger" href="#modal1">Save</span>
             <span id="run" class="btn-large waves-effect waves-light modal-trigger" href="#modal1">Save & Run</span>
 
             <!-- Modal Structure -->
@@ -79,7 +69,7 @@ $config_files = json_decode($response);
 
                 </div>
                 <div class="modal-footer">
-                    <a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat">Close</a>
+                    <span class="modal-action modal-close waves-effect waves-green btn-flat">Close</span>
                 </div>
             </div>
 
@@ -164,6 +154,7 @@ $config_files = json_decode($response);
 
     $('#run').click(function (event) {
 
+        $('#showresults').html('loading...');
         $.ajax({
             url: 'run',
             type: 'post',
@@ -171,8 +162,37 @@ $config_files = json_decode($response);
                 'code': editor.getValue(),
                 'config': currentURL.searchParams.get("config")
             },
-            before: function (response) {
+            before: function () {
                 $('#modal1').modal('open');
+                $('#showresults').html('loading...');
+
+            },
+            success: function (response) {
+                $('#loading').remove();
+                //var result = $('<div />').append(response).find('#showresults').html();
+                $('#showresults').html(response);
+            },
+            error: function (xhr, status, error) {
+            }
+        });
+
+    });
+
+    $('#save').click(function (event) {
+
+        $('#showresults').html('loading...');
+        $.ajax({
+            url: 'run',
+            type: 'post',
+            data: {
+                'code': editor.getValue(),
+                'config': currentURL.searchParams.get("config"),
+                'onlySave':true,
+            },
+            before: function (response) {
+
+                $('#modal1').modal('open');
+                $('#showresults').html('loading...');
             },
             success: function (response) {
                 $('#loading').remove();

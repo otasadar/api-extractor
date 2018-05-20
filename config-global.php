@@ -34,6 +34,7 @@ $extractions['global']['google']['client_secret'] = 'PAx5fz386w0groUL8JFgdVuQ';
 $extractions['global']['google']['developer_token'] = 'RPVuoNbWrFpSxE-UCabf9w';
 
 $extractions['global']['google_oauth']['api_version'] = 'v4';
+$extractions['global']['google_bigquery']['refresh_token'] = '1/T32mKg5ITADEUXA5viQuDBNyg8yhDuIyCO3z6Mqy2cM';
 $extractions['global']['google_bigquery']['api_version'] = 'v2';
 
 $extractions['global']['google_storage']['api_version'] = 'v1';
@@ -62,6 +63,7 @@ $extractions['global']['google_compute']['refresh_token'] = '1/sVw1xELv02Lqo-7zu
 $extractions['global']['google_compute']['email_credential'] = 'unknown';
 
 // AdWords API explorer : https://developers.google.com/adwords/api/docs/reference/v201802/ReportDefinitionService
+// Adwords scope : https://www.googleapis.com/auth/adwords
 // AdWords Queries Tester : https://www.awql.me/adwords
 $extractions['global']['adwords']['api_version'] = 'v201802';
 $extractions['global']['adwords']['today'] = date('Ymd'); // YYYYMMDD

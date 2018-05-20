@@ -5,9 +5,12 @@ include_once __DIR__ . '/config-global.php';
 $helpers = new helpers();
 
 // https://api-extractor-dot-annalect-api-jobs.appspot.com/run-bigquery?tableId=phd_aio_final&datasetId=aio_phd&filePath=aio_phd/output/phd_aio_data.csv&schema=phd-aio-schema.json
+///run-bigquery?projectId=aio_phd&tableId=aio_phd&datasetId=annalect_dashboarding
 
 //Refresh access token
-$access_token = $helpers->get_access_token('1072155568501-rpcfah9qpkg9jro4c6c9sh62go6pm7oe.apps.googleusercontent.com', 'PAx5fz386w0groUL8JFgdVuQ', '1/T32mKg5ITADEUXA5viQuDBNyg8yhDuIyCO3z6Mqy2cM');
+$access_token = $helpers->get_access_token($extractions['global']['google']['client_id'],
+    $extractions['global']['google']['client_secret'],
+    $extractions['global']['google_bigquery']['refresh_token']);
 
 syslog(LOG_DEBUG, 'ACCESS TOKEN-> ' . $access_token);
 
@@ -17,8 +20,8 @@ $headers = array('content-type: application/json', 'authorization : Bearer ' . $
 //End point
 $api_version = $extractions['global']['google_bigquery']['api_version'];
 $endpoint = "https://www.googleapis.com/bigquery/$api_version/projects/annalect-api-jobs/jobs?alt=json";
-$list_query_projects = file_get_contents('https://storage.googleapis.com/annalect-dashboarding/config/queries.json');
-echo json_decode($list_query_projects,true)[$_GET['projectId']]['query'];
+$list_query_projects = file_get_contents('https://storage.googleapis.com/annalect-dashboarding/config/queries.json'); //???
+echo json_decode($list_query_projects,true)[$_GET['projectId']]['query']; // ???
 
 //Payload data
 $payload = '{

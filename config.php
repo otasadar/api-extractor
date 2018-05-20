@@ -817,3 +817,74 @@ array_push($extractions['items'], array(
         }
       }'
 ));
+
+
+
+$dbm_accounts = array(
+    array('partnerId' => '407', 'partnerName' => 'Accuen MENA FZLLC', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com')
+);
+
+/*
+$dbm_accounts = array(
+    array('partnerId' => '407', 'partnerName' => 'Accuen MENA FZLLC', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com'),
+    array('partnerId' => '2300132', 'partnerName' => 'Hearts and Science', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com'),
+    array('partnerId' => '2298582', 'partnerName' => 'OMD – QAT', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com'),
+    array('partnerId' => '2300831', 'partnerName' => 'OMD – UAE', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com'),
+    array('partnerId' => '2406541', 'partnerName' => 'PHD - MH Alshaya', 'refreshToken' => '1/yJMFjbdkKv5Wzih2RzRoTLIE_CkVnHhBWbLwBqp8Hfo', 'credentialEmail' => 'annalectautomation@gmail.com')
+);
+*/
+
+
+array_push($extractions['items'], array(
+    'api' => 'dbm',
+    'api_type' => 'google',
+    'extraction_group' => 'programmatic',
+    'extraction_name' => 'inventory',
+    'max_execution_sec' => 10000,
+    'report_type' => "TYPE_GENERAL",
+    'startDate' => '2018-01-01',
+    'endDate' => $extractions['global']['dbm']['yesterday'],
+    'accountsData' => $dbm_accounts,
+    'json_request' => '{
+        "metadata": {
+            "title": "task-name",
+            "dataRange": "CUSTOM_DATES",
+            "format": "CSV",
+            "sendNotification": false
+        },
+        "params": {
+            "type": "TYPE_GENERAL",
+            "groupBys": ["FILTER_DATE",
+                        "FILTER_ADVERTISER",
+                        "FILTER_ADVERTISER_CURRENCY",
+                        "FILTER_CREATIVE_TYPE",
+                        "FILTER_INVENTORY_SOURCE",
+                        "FILTER_INVENTORY_SOURCE_TYPE",
+                        "FILTER_INVENTORY_FORMAT"
+                        ],
+            "filters": [             
+             {
+                "type": "FILTER_PARTNER",
+                "value": "407"
+            }],
+            "metrics": ["METRIC_IMPRESSIONS", 
+                        "METRIC_ACTIVE_VIEW_MEASURABLE_IMPRESSIONS",
+                        "METRIC_ACTIVE_VIEW_VIEWABLE_IMPRESSIONS",
+                        "METRIC_CLICKS",
+                        "METRIC_REVENUE_ADVERTISER", 
+                        "METRIC_MEDIA_COST_ADVERTISER",  
+                        "METRIC_TOTAL_MEDIA_COST_ADVERTISER",
+                        "METRIC_PROFIT_ADVERTISER",
+                        "METRIC_RICH_MEDIA_VIDEO_FIRST_QUARTILE_COMPLETES", 
+                        "METRIC_RICH_MEDIA_VIDEO_MIDPOINTS", 
+                        "METRIC_RICH_MEDIA_VIDEO_THIRD_QUARTILE_COMPLETES", 
+                        "METRIC_RICH_MEDIA_VIDEO_COMPLETIONS"
+                        ],
+            "includeInviteData": false
+        },
+        "schedule": {
+            "frequency": "ONE_TIME",
+            "nextRunTimezoneCode": "Asia/Dubai"
+        }
+      }'
+));
