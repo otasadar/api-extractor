@@ -75,8 +75,8 @@ handlers:
   script: run-moat.php
   secure: always
 
-- url: /run-moat-old
-  script: run-moat-old.php
+- url: /run-moat-batch
+  script: run-moat-batch.php
   secure: always
 
 

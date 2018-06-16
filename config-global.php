@@ -77,7 +77,8 @@ $extractions['global']['dcm']['today'] = date('Y-m-d'); // 2018-01-24
 $extractions['global']['dcm']['yesterday'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['dcm']['today'])) . " -1 day"));
 $extractions['global']['dcm']['last_6months'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['dcm']['today'])) . " -6 month"));
 
-$extractions['global']['facebook']['api_version'] = 'v2.10';
+// https://developers.facebook.com/docs/graph-api/changelog#marketing-api-changelog
+$extractions['global']['facebook']['api_version'] = 'v3.0';
 $extractions['global']['facebook']['today'] = date('Y-m-d'); // 2018-01-24
 $extractions['global']['facebook']['yesterday'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['facebook']['today'])) . " -1 day"));
 $extractions['global']['facebook']['last_6months'] = date("Y-m-d", strtotime(date("Y-m-d", strtotime($extractions['global']['facebook']['today'])) . " -6 month"));

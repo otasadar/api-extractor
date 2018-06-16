@@ -189,12 +189,14 @@ switch ($extraction['api']) {
         foreach ($extraction['accountsData'] as $profileId => $accountData) {
 
             // profileId validation
+
             if (!in_array($profileId, $extraction['profileIds_validated'])) {
                 $log_values = Array($profileId, null, null, null, "ERROR", "Profile ID not found");
                 $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
                 $extraction = $helpers->live_log($extraction, $log_values);
                 continue;
             }
+
 
             foreach ($accountData as $row) {
 
@@ -365,147 +367,37 @@ switch ($extraction['api']) {
 
     case "facebook":
 
-        $reports = [];
-        $reports_running = [];
-        $start_date = $extraction['startDate'];
-        $end_date = $extraction['endDate'];
-        $still_pending_reports = true;
-        $include_header = true;
+        // Create dates intervals
+        if (isset($extraction['split_day_period'])) {
+            $dates = $helpers->split_dates($extraction['startDate'], $extraction['endDate'], $extraction['split_day_period'], 'Y-m-d');
+            $helpers->gae_log(LOG_DEBUG, "all dates".json_encode($dates));
+        }
 
+        // First loop to init reports requests
+        $i = 0;
         foreach ($extraction['accountsData'] as $key => $account) {
-            $first_date_split = true;
+            $helpers->print_first_extraction_for_testing($extraction, $i); $i++;
             $extraction['current'] = $account;
-            $array_dates = $helpers->split_dates_equal($start_date, $end_date, $helpers->date_difference($start_date, $end_date, 'm'));
-
-            for ($x = 0; $x < count($array_dates) - 1; $x++) {
-
-                if ($first_date_split) {
-                    $extraction['startDate'] = $array_dates[$x];
-                    $first_date_split = false;
-
-                } else {
-                    $date = date_create($array_dates[$x]);
-                    date_add($date, date_interval_create_from_date_string('1 day'));
-                    $extraction['startDate'] = date_format($date, 'Y-m-d');
+            // Split by dates
+            if (isset($extraction['split_day_period'])) {
+                foreach ($dates as $date) {
+                    $extraction['startDate'] = $date['startDate'];
+                    $extraction['endDate'] = $date['endDate'];
+                    $extraction = $facebook->init_facebook_report_request ($extraction);
                 }
 
-                $extraction['endDate'] = $array_dates[$x + 1];
-                $report_request_id = $facebook->set_facebook_request($extraction);
-
-                if ($report_request_id !== 'error') {
-                    $report_info = new stdClass();
-                    $report_info->report_id = $report_request_id;
-                    $report_info->account_id = $extraction['current']['accountId'];
-                    $report_info->account_name = $extraction['current']['accountName'];
-                    $report_info->date_range = $extraction['startDate'] . '/' . $extraction['endDate'];
-                    array_push($reports, $report_info);
-                    $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], $report_request_id, 'REPORT REQUESTED');
-
-                } else {
-                    $log_values = Array($extraction['current']['accountId'], $extraction['current']['accountName'], $report_request_id, 'REPORT ERROR REQUESTED');
-
-                }
-                $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                $extraction = $helpers->live_log($extraction, $log_values);
+            } else {
+                // One extractions per ID
+                $extraction = $facebook->init_facebook_report_request ($extraction);
             }
         }
 
-
-        if (!empty($reports)) {
-
-            while ($still_pending_reports) {
-
-                foreach ($reports as $key => $report) {
-
-                    $account_data = $facebook->set_async_facebook_request($extraction, $report->report_id);
-
-                    if ($account_data[0] === 'loading') {
-                        $report_running_info = new stdClass();
-                        $report_running_info->report_id = $report->report_id;
-                        $report_running_info->account_id = $report->account_id;
-                        $report_running_info->account_name = $report->account_name;
-                        $report_running_info->date_range = $report->date_range . '/' . $report->endDate;
-                        array_push($reports_running, $report_running_info);
-
-                        $current_time = new DateTime(date('H:i:s'));
-                        $minute = (int)$current_time->format('i');
-
-                        if ($minute % 5 === 0) {
-                            $log_values = Array($report->account_id, $report->account_name, $report->report_id, 'REPORT LOADING-> ' . $account_data[1] . '%');
-                            $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                            $extraction = $helpers->live_log($extraction, $log_values);
-                        }
-                    }
-
-                    if ($account_data[0] === 'fail') {
-                        array_push($async_report_ids_running, $account_data[1]);
-
-                        $log_values = Array($report->account_id, $report->account_name, $report->report_id . ' ---> ' . $account_data[1], 'REPORT FAILED');
-                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                        $extraction = $helpers->live_log($extraction, $log_values);
-                    }
-
-                    if ($account_data[0] === 'done') {
-
-                        $log_values = Array($report->account_id, $report->account_name, $report->report_id, 'REPORT RECEIVED FROM API');
-                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                        $extraction = $helpers->live_log($extraction, $log_values);
-
-                        if (mb_strlen($account_data[1]) > 22) {
-
-                            if ($include_header) {
-
-                                // original version
-                                //$extraction['csv_output'] = $account_data[1];
-
-                                //version for edit header
-                                //$extraction['csv_output'] = $facebook->add_pattern_to_header ($account_data[1] , 'fb_');
-
-
-                                $header = implode(array_slice(explode("\n", $account_data[1]), 0,1));
-                                $header = preg_replace('/[^,_A-Za-z0-9\-]/', "", $header);
-                                $header = 'fb_' . str_replace(',',',fb_',$header);
-                                $helpers->gae_log(LOG_DEBUG, $header);
-
-                                $header = explode(",",$header);
-                                $helpers->gae_log(LOG_DEBUG, json_encode($header));
-
-                                $header_string_unique = implode(",", $helpers->unique_arr($header));
-                                $helpers->gae_log(LOG_DEBUG, $header_string_unique);
-
-
-                                $body = implode("\n",array_slice(explode("\n", $account_data[1]), 1));
-                                $extraction['csv_output'] = $header_string_unique . "\n" . $body;
-
-
-                                $helpers->create_csv_file($extraction);
-                                $include_header = false;
-                                $result = 'REPORT UPDATED TO STORAGE WITH HEADER';
-
-                            } else {
-                                $extraction['csv_output'] = implode("\n", array_slice(explode("\n", $account_data[1]), 1));
-                                $helpers->storage_insert_combine_delete($extraction);
-                                $result = 'REPORT UPDATED TO STORAGE WITHOUT HEADER';
-                            }
-
-                        } else {
-                            $result = 'REPORT IS EMPTY';
-                        }
-
-                        $log_values = Array($report->account_id, $report->account_name, $report->report_id, $result, mb_strlen($account_data[1]));
-                        $helpers->gae_log(LOG_DEBUG, json_encode($log_values));
-                        $extraction = $helpers->live_log($extraction, $log_values);
-                    }
-                }
-
-                if (!empty($async_report_ids_running)) {
-                    $reports = $reports_running;
-                    $reports_running = [];
-                    sleep(60);
-                } else {
-                    $still_pending_reports = false;
-                }
-            }
+        // Second loop wait for status and save data
+        foreach ($extraction['reportsData'] as $key =>$row) {
+            $extraction['current'] = $row;
+            $extraction['current']['attempt'] = 1;
+            $extraction = $facebook->wait_until_status_done ($extraction);
+            $extraction = $facebook->save_report_data ($extraction);
         }
 
         break;
@@ -603,6 +495,7 @@ $extraction = $helpers->rename_tmp_to_final_file($extraction);
 
 // Force last row live log
 $helpers->live_log_instant($extraction, Array("End Task {$extraction['api']} - {$extraction['extraction_name']}--------------------------------------"));
+
 
 
 

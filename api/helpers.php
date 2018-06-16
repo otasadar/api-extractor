@@ -154,7 +154,7 @@ class helpers
         if (is_array($headers)) {
             curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
         } else {
-            $this->gae_log(LOG_DEBUG, "curl without headers" . $endpoint);
+            //$this->gae_log(LOG_DEBUG, "curl without headers" . $endpoint);
         }
         if (isset($extras)) {
             foreach ($extras as $extra) {
@@ -422,7 +422,7 @@ class helpers
         return $response;
     }
 
-    // Combine storage  file
+    // Combine 2 storage  file
     function compose_two_files_storage($extraction, $destinationObject, $sourceObject)
     {
 
@@ -1424,7 +1424,7 @@ class helpers
     }
 
     // Split dates into smaller period dates
-    function split_dates($start_date_str, $end_date_str, $split_day_period)
+    function split_dates($start_date_str, $end_date_str, $split_day_period, $format = 'Ymd')
     {
 
         //$now = new DateTime();
@@ -1441,8 +1441,9 @@ class helpers
             if ($tmp_period > $diff) {
                 $tmp_period = $diff;
             }
-            $startDate = $this->addDays($start_date_str, $i);
-            $endDate = $this->addDays($start_date_str, $tmp_period);
+
+            $startDate = $this->addDays($start_date_str, $i, $format);
+            $endDate = $this->addDays($start_date_str, $tmp_period, $format);
 
             $data_periods[] = array('startDate' => $startDate, 'endDate' => $endDate);
 
@@ -1452,11 +1453,11 @@ class helpers
     }
 
     // Add days to a date
-    function addDays($date, $days)
+    function addDays($date, $days, $format)
     {
         $date = new DateTime($date);
         date_modify($date, "+$days day");
-        return date_format($date, 'Ymd');
+        return date_format($date, $format);
     }
 
     // Remove days to a date
@@ -1610,6 +1611,7 @@ class helpers
         return $extraction;
     }
 
+    // Upload file to big query table
     function upload_big_query($extractions) {
 
         //Refresh access token
@@ -1624,6 +1626,9 @@ class helpers
         $endpoint = "https://www.googleapis.com/bigquery/$api_version/projects/{$extractions['projectId']}/jobs?alt=json";
         $bucket = $extractions['global']['google_storage']['bucket'];
 
+        $extractions['autodetect'] = (!isset($extractions['schema'])) ? 'true' : 'false' ;
+        $extractions['schema'] = (isset($extractions['schema'])) ? $extractions['schema'].',' : '' ;
+
         //Payload data
         $payload = ' {
             "configuration": {
@@ -1633,7 +1638,8 @@ class helpers
                         "tableId": "'.$extractions['tableId'].'",
                         "datasetId": "'.$extractions['datasetId'].'"
                     },
-                    "autodetect": true,
+                    '.$extractions['schema'].'
+                    "autodetect": '.$extractions['autodetect'].',
                     "sourceUris": ["gs://'.$bucket.'/'.$extractions['object'].'"],
                     "writeDisposition": "WRITE_' . strtoupper($extractions['disposition']) . '"
                 }
@@ -1644,6 +1650,57 @@ class helpers
         //$this->gae_log(LOG_DEBUG, 'PAYLOAD-> ' . $payload);
         //$this->gae_log(LOG_DEBUG, 'PAYLOAD-> ' . json_decode(json_encode($payload)));
         $curl_response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $this->gae_log(LOG_DEBUG, 'payload-> ' . $payload);
         $this->gae_log(LOG_DEBUG, 'curl response-> ' . json_encode($curl_response, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+    }
+
+    // Bigquery select
+    function select_big_query($extractions) {
+
+        //Refresh access token
+        $access_token = $this->get_access_token($extractions['global']['google']['client_id'],
+            $extractions['global']['google']['client_secret'],
+            $extractions['global']['google_bigquery']['refresh_token']);
+
+        $this->gae_log(LOG_DEBUG, 'ACCESS TOKEN-> ' . $access_token);
+
+        $headers = array('content-type: application/json', 'authorization : Bearer ' . $access_token);
+        $api_version = $extractions['global']['google_bigquery']['api_version'];
+        $endpoint = "https://www.googleapis.com/bigquery/$api_version/projects/{$extractions['projectId']}/jobs?alt=json";
+        $bucket = $extractions['global']['google_storage']['bucket'];
+
+        if (!isset($extractions['autodetect'])) {
+            $extractions['autodetect'] = 'true';
+        }
+
+        $payload = '{
+            "configuration": {
+                "query": {
+                    "query": "'.$extractions['query'].'",
+                    "allowLargeResults": true,
+                    "destinationTable": {
+                        "projectId": "'.$extractions['projectId'].'",
+                        "tableId": "'.$extractions['tableId'].'",
+                        "datasetId": "'.$extractions['datasetId'].'"
+                    },
+                "defaultDataset": {
+                    "datasetId": "'.$extractions['datasetId'].'",
+                    "projectId": "'.$extractions['projectId'].'"
+                },
+                "writeDisposition": "WRITE_' . strtoupper($extractions['disposition']) . '"
+            }
+          }
+        }';
+
+        $curl_response = $this->set_curl($headers, $endpoint, $payload, 'POST', null);
+        $this->gae_log(LOG_DEBUG, 'payload-> ' . $payload);
+        $this->gae_log(LOG_DEBUG, 'curl response-> ' . json_encode($curl_response, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+    }
+
+
+    function print_first_extraction_for_testing($extraction, $i) {
+            if ($i === 0) {
+                $this->gae_log(LOG_DEBUG, json_encode($extraction));
+            }
     }
 }
