@@ -144,6 +144,7 @@ class helpers
     {
 
         $curl = curl_init();
+        //$this->gae_log(LOG_DEBUG, "set_curl -  headers:" . json_encode($headers). "- endpoint: $endpoint - payload: $payload - type : $type");
 
         curl_setopt($curl, CURLOPT_URL, $endpoint);
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $type);

@@ -46,11 +46,12 @@ class dbm
         $endpoint = "https://www.googleapis.com/doubleclickbidmanager/$api_version/query";
 
         $curl_response = $this->helpers->set_curl($headers, $endpoint, $extraction['json_request'], 'POST', null);
-        $curl_response = json_decode($curl_response);
-
-        $this->helpers->gae_log(LOG_DEBUG, "dbm_report_setup " . json_encode($curl_response));
-        sleep(1);
-        return $curl_response;
+        if (is_array($curl_response)) {
+            return $curl_response; // error
+        } else {
+            sleep(1);
+            return json_decode($curl_response);
+        }
     }
 
     // DBM request 2 - Run report for get URL

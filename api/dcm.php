@@ -328,9 +328,15 @@ class dcm
                 // edit report json request dynamically
                 $extraction['json_request'] = json_decode($extraction['json_request']);
                 if (isset($extraction['json_request']->floodlightCriteria->dateRange->endDate)) {
+                    $endDate = $extraction['json_request']->floodlightCriteria->dateRange->endDate;
                     if ($extraction['json_request']->floodlightCriteria->dateRange->endDate === 'YESTERDAY') {
-                        $extraction['json_request']->floodlightCriteria->dateRange->endDate = $extraction['global']['dcm']['yesterday'];
+                        $endDate = $extraction['global']['dcm']['yesterday'];
+                        $extraction['json_request']->floodlightCriteria->dateRange->endDate = $endDate;
                     }
+
+                    $startDate = date("Y-m-d", strtotime(date("Y-m-d", strtotime($endDate)) . " -59 day"));
+                    $extraction['json_request']->floodlightCriteria->dateRange->startDate = $startDate;
+
                 }
                 $extraction['json_request']->floodlightCriteria->floodlightConfigId->value = $floodlightConfigId;
                 $extraction['json_request'] = json_encode($extraction['json_request']);
